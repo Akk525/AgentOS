@@ -1,0 +1,68 @@
+import type { Permission } from '../types'
+
+export const sessionPermissions: Permission[] = [
+  {
+    id: 'p-read',
+    label: 'Read files',
+    description: 'Read any file within the worktree boundary',
+    status: 'allowed',
+    riskLevel: 'low',
+    category: 'filesystem',
+  },
+  {
+    id: 'p-edit',
+    label: 'Edit files',
+    description: 'Modify source files inside the worktree',
+    status: 'allowed',
+    riskLevel: 'low',
+    category: 'filesystem',
+  },
+  {
+    id: 'p-tests',
+    label: 'Run tests',
+    description: 'Execute test suite via npm test / pytest',
+    status: 'allowed',
+    riskLevel: 'low',
+    category: 'tests',
+  },
+  {
+    id: 'p-git',
+    label: 'Git operations',
+    description: 'Commit, branch, stash — no push/force-push',
+    status: 'allowed',
+    riskLevel: 'low',
+    category: 'git',
+  },
+  {
+    id: 'p-pkg',
+    label: 'Install packages',
+    description: 'Run npm install / yarn add / pip install',
+    status: 'require_confirmation',
+    riskLevel: 'medium',
+    category: 'package',
+  },
+  {
+    id: 'p-delete',
+    label: 'Delete files',
+    description: 'Permanently remove files from the worktree',
+    status: 'require_confirmation',
+    riskLevel: 'high',
+    category: 'filesystem',
+  },
+  {
+    id: 'p-shell',
+    label: 'Shell execution',
+    description: 'Run arbitrary shell commands outside test runner',
+    status: 'denied',
+    riskLevel: 'critical',
+    category: 'shell',
+  },
+  {
+    id: 'p-net',
+    label: 'Network access',
+    description: 'Make HTTP requests to external hosts',
+    status: 'denied',
+    riskLevel: 'critical',
+    category: 'network',
+  },
+]
