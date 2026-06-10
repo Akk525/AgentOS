@@ -1,6 +1,8 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod commands;
+mod db;
+mod store_commands;
 
 fn main() {
     tauri::Builder::default()
@@ -11,6 +13,19 @@ fn main() {
             commands::create_worktree,
             commands::run_workspace_command,
             commands::get_git_diff,
+            store_commands::store_init,
+            store_commands::store_get_status,
+            store_commands::store_list_projects,
+            store_commands::store_create_project,
+            store_commands::store_get_project,
+            store_commands::store_upsert_node,
+            store_commands::store_delete_node,
+            store_commands::store_upsert_edge,
+            store_commands::store_delete_edge,
+            store_commands::store_append_event,
+            store_commands::store_list_events,
+            store_commands::store_upsert_session,
+            store_commands::store_list_sessions,
         ])
         .run(tauri::generate_context!())
         .expect("error while running AgentOS");

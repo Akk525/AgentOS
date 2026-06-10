@@ -53,7 +53,7 @@ export function Sidebar({ activeView, onViewChange }: SidebarProps) {
           </div>
           <div>
             <div className="text-sm font-semibold text-white tracking-tight">AgentOS</div>
-            <div className="text-[10px] text-slate-500 font-mono">v1.3.0-alpha</div>
+            <div className="text-[10px] text-slate-500 font-mono">v2.1.0-alpha</div>
           </div>
         </div>
       </div>

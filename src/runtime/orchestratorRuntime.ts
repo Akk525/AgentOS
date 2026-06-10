@@ -5,9 +5,12 @@ import type {
 } from '../types'
 import {
   mockActiveSessions, initialRuntimeLoad, mockReviewSessions,
-  mockRuntimeQueue, mockDependencies, mockOrchestratorTimeline,
+  mockRuntimeQueue, mockDependencies,
   mockReviewComments,
 } from '../data/mockOrchestration'
+import { getLocalStore } from './store'
+import { orchestratorEventToAppendInput, storedEventToOrchestrator } from './eventProjection'
+import { taskGraphEngine } from './taskGraphEngine'
 import {
   mockPlannerSession, mockRuntimePlans, mockReasoning, mockBlockers,
 } from '../data/mockPlanning'
@@ -36,16 +39,54 @@ class OrchestratorRuntime {
     runtimeQueue:   [...mockRuntimeQueue],
     runtimeLoad:    { ...initialRuntimeLoad },
     reviewSessions: [...mockReviewSessions],
-    timeline:       [...mockOrchestratorTimeline],
+    timeline:       [],
     runtimePlans:   [...mockRuntimePlans],
     reasoning:      [...mockReasoning],
     blockers:       [...mockBlockers],
   }
 
   private listeners = new Set<OrchestratorListener>()
+  private booted = false
+  private initPromise: Promise<void> | null = null
+  private activeProjectId: string | null = null
 
-  constructor() {
-    setTimeout(() => this.boot(), 2000)
+  async init(): Promise<void> {
+    if (this.initPromise) return this.initPromise
+    this.initPromise = this.doInit()
+    return this.initPromise
+  }
+
+  private async doInit(): Promise<void> {
+    await taskGraphEngine.init()
+    await this.hydrateFromStore()
+    if (!this.booted) {
+      this.booted = true
+      setTimeout(() => this.boot(), 2000)
+    }
+  }
+
+  private async hydrateFromStore(): Promise<void> {
+    const store = getLocalStore()
+    if (!store.available) return
+
+    try {
+      const projects = await store.listProjects()
+      this.activeProjectId = localStorage.getItem('agentos.activeProjectId') ?? projects[0]?.id ?? null
+
+      const events = await store.listEvents({
+        projectId: this.activeProjectId,
+        limit: 200,
+      })
+
+      if (events.length > 0) {
+        const timeline = events
+          .map(storedEventToOrchestrator)
+          .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
+        this.patch({ timeline })
+      }
+    } catch {
+      // keep empty timeline on failure
+    }
   }
 
   getState(): OrchestratorState {
@@ -64,7 +105,13 @@ class OrchestratorRuntime {
 
   private pushEvent(ev: Omit<OrchestratorEvent, 'id' | 'timestamp'>): void {
     const entry: OrchestratorEvent = { id: uid(), timestamp: ts(), ...ev }
-    this.patch({ timeline: [entry, ...this.state.timeline].slice(0, 60) })
+    this.patch({ timeline: [entry, ...this.state.timeline] })
+
+    const store = getLocalStore()
+    if (store.available) {
+      const input = orchestratorEventToAppendInput(ev, this.activeProjectId)
+      store.appendEvent(input).catch(() => {})
+    }
   }
 
   private updateSession(id: string, updates: Partial<ActiveSession>): void {

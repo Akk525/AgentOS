@@ -1,8 +1,7 @@
-import { useState } from 'react'
 import { Filter, SortAsc } from 'lucide-react'
 import { TaskColumn } from './TaskColumn'
 import { GlowButton } from '../shared/GlowButton'
-import { mockTasks } from '../../data/mockTasks'
+import { useGraphTasks } from '../../hooks/useGraphTasks'
 import type { Task, TaskStatus } from '../../types'
 
 const columns: TaskStatus[] = ['backlog', 'claimed', 'running', 'review', 'needs_changes', 'done', 'failed']
@@ -12,7 +11,7 @@ interface TaskBoardProps {
 }
 
 export function TaskBoard({ onTaskClick }: TaskBoardProps) {
-  const [tasks] = useState(mockTasks)
+  const { tasks } = useGraphTasks()
 
   const tasksByStatus = (status: TaskStatus) => tasks.filter(t => t.status === status)
 

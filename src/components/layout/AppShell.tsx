@@ -22,16 +22,22 @@ import { WorkspaceMountModal } from '../workspace/WorkspaceMountModal'
 import { SpawnSessionModal } from '../sessions/SpawnSessionModal'
 import { OrchestrationView } from '../orchestration/OrchestrationView'
 import { OrchestratorProvider } from '../../context/OrchestratorContext'
+import { TaskGraphProvider } from '../../context/TaskGraphContext'
 import { RoadmapView } from '../roadmap/RoadmapView'
 import { OnboardingOverlay } from '../onboarding/OnboardingOverlay'
 import { ShortcutsOverlay } from '../shared/ShortcutsOverlay'
 import { useFirstRun } from '../../hooks/useFirstRun'
+import { WebFallbackBanner } from '../shared/WebFallbackBanner'
 import type { View } from '../../App'
 import type { Task } from '../../types'
+import type { StoreInitResult, StoreStatus } from '../../runtime/store'
 
 interface AppShellProps {
   activeView: View
   onViewChange: (view: View) => void
+  isDesktop: boolean
+  persistenceInit: StoreInitResult | null
+  persistenceStatus: StoreStatus | null
 }
 
 const pageVariants = {
@@ -40,7 +46,13 @@ const pageVariants = {
   exit: { opacity: 0, y: -8 },
 }
 
-export function AppShell({ activeView, onViewChange }: AppShellProps) {
+export function AppShell({
+  activeView,
+  onViewChange,
+  isDesktop,
+  persistenceInit,
+  persistenceStatus,
+}: AppShellProps) {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [newTaskOpen, setNewTaskOpen] = useState(false)
   const [paletteOpen, setPaletteOpen] = useState(false)
@@ -90,7 +102,12 @@ export function AppShell({ activeView, onViewChange }: AppShellProps) {
           onSpawnSession={id => { setSpawnWorkspaceId(id); setSpawnOpen(true) }}
         />
       case 'runtime':
-        return <RuntimeView />
+        return (
+          <RuntimeView
+            persistenceInit={persistenceInit}
+            persistenceStatus={persistenceStatus}
+          />
+        )
       case 'orchestration':
         return <OrchestrationView />
       case 'roadmap':
@@ -116,6 +133,7 @@ export function AppShell({ activeView, onViewChange }: AppShellProps) {
 
   return (
     <RuntimeProvider>
+      <TaskGraphProvider>
       <OrchestratorProvider>
       <div className="flex h-full w-full overflow-hidden">
         {/* Background */}
@@ -135,6 +153,7 @@ export function AppShell({ activeView, onViewChange }: AppShellProps) {
           <Sidebar activeView={activeView} onViewChange={onViewChange} />
 
           <div className="flex-1 flex flex-col min-w-0">
+            {!isDesktop && <WebFallbackBanner />}
             <TopBar activeView={activeView} onNewTask={() => setNewTaskOpen(true)} />
 
             <main className="flex-1 overflow-hidden">
@@ -189,6 +208,7 @@ export function AppShell({ activeView, onViewChange }: AppShellProps) {
         </AnimatePresence>
       </div>
       </OrchestratorProvider>
+      </TaskGraphProvider>
     </RuntimeProvider>
   )
 }

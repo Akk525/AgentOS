@@ -7,6 +7,8 @@ import { ProviderDiagnosticsPanel } from './ProviderDiagnosticsPanel'
 import { RuntimeLogPanel } from './RuntimeLogPanel'
 import { useRuntime } from '../../context/RuntimeContext'
 import { getEnvironment } from '../../runtime/desktop/desktopBridge'
+import type { StoreInitResult, StoreStatus } from '../../runtime/store'
+import { StorageDiagnosticsPanel } from './StorageDiagnosticsPanel'
 
 type RuntimeTab = 'connection' | 'providers' | 'logs'
 
@@ -41,7 +43,12 @@ function EnvironmentBanner() {
   )
 }
 
-export function RuntimeView() {
+interface RuntimeViewProps {
+  persistenceInit?: StoreInitResult | null
+  persistenceStatus?: StoreStatus | null
+}
+
+export function RuntimeView({ persistenceInit, persistenceStatus }: RuntimeViewProps) {
   const [activeTab, setActiveTab] = useState<RuntimeTab>('connection')
   const { runtimeLogs, providerHealth } = useRuntime()
 
@@ -102,7 +109,15 @@ export function RuntimeView() {
             transition={{ duration: 0.15 }}
             className="h-full"
           >
-            {activeTab === 'connection' && <RuntimeConnectionPanel />}
+            {activeTab === 'connection' && (
+              <div className="flex flex-col h-full overflow-auto">
+                <StorageDiagnosticsPanel
+                  init={persistenceInit ?? null}
+                  status={persistenceStatus ?? null}
+                />
+                <RuntimeConnectionPanel />
+              </div>
+            )}
             {activeTab === 'providers'  && <ProviderDiagnosticsPanel />}
             {activeTab === 'logs'       && <RuntimeLogPanel />}
           </motion.div>

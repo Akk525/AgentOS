@@ -5,6 +5,7 @@ import {
 } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { useOrchestrator } from '../../context/OrchestratorContext'
+import { useTaskGraph } from '../../context/TaskGraphContext'
 import { formatRelativeTime } from '../../lib/utils'
 import type { PlanSubtask, PlanSubtaskStatus, RuntimeBlocker, BlockerType } from '../../types'
 
@@ -176,8 +177,10 @@ function BlockerCard({ blocker, onEscalate }: { blocker: RuntimeBlocker; onEscal
 
 export function RuntimePlanView() {
   const { runtimePlans, blockers, escalateBlocker } = useOrchestrator()
+  const { runtimePlan: graphPlan, graphAvailable, loaded } = useTaskGraph()
 
-  const activePlan = runtimePlans[0]
+  const activePlan =
+    graphAvailable && loaded && graphPlan ? graphPlan : runtimePlans[0]
   const activeBlockers = blockers.filter(b => !b.resolved)
   const resolvedBlockers = blockers.filter(b => b.resolved)
   const progress = activePlan

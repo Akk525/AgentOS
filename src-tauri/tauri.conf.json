@@ -1,11 +1,11 @@
 {
   "productName": "AgentOS",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "identifier": "dev.agentos.app",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:5173",
-    "beforeDevCommand": "npm run dev",
+    "beforeDevCommand": "npm run dev:web",
     "beforeBuildCommand": "npm run build"
   },
   "bundle": {

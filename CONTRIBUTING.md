@@ -10,12 +10,13 @@ AgentOS is in active development. Contributions are welcome — bugs, features, 
 git clone https://github.com/your-org/agentos
 cd agentos
 npm install
-npm run dev          # development server at localhost:5173
+npm run dev          # Tauri desktop app (default — requires Rust)
+npm run dev:web      # browser preview only at localhost:5173
 npm run build        # production build (also runs tsc)
 npm run lint         # ESLint
 ```
 
-The app runs fully in the browser — no backend required. All runtime state is simulated in `src/runtime/` and `src/data/`.
+**Default mode is the Tauri desktop app** with SQLite persistence (`src/runtime/store/`). Browser preview (`npm run dev:web`) simulates the runtime with no durable storage. Orchestration UI still uses mock data in `src/data/` until TaskGraphEngine wires to `LocalStore`.
 
 ---
 

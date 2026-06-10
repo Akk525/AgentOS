@@ -9,6 +9,38 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- **TaskGraphEngine (Phase A Sprint 2)** — singleton graph coordinator over `LocalStore` with ready/blocked executor, demo seed, and `TaskGraphContext`
+- **Graph projections** — `graphNodesToTasks()` for Kanban, `graphToRuntimePlan()` for Plan view
+- **Durable orchestrator timeline** — hydrates from SQLite on boot; `pushEvent()` dual-writes to store (no 60-item cap)
+- **Demo graph seed** — seeds auth refactor plan from `mockPlanning` on first empty store
+- **In-memory LocalStore** — full Map-backed implementation for `npm run dev:web`
+- **SQLite local store (Phase A Sprint 1)** — `rusqlite` schema v1 with `projects`, `graph_nodes`, `graph_edges`, `events`, `sessions` tables in `src-tauri/src/db/`
+- **Tauri store IPC** — 13 commands in `store_commands.rs` (`store_init`, project/node/edge CRUD, `store_append_event`, session snapshots)
+- **TypeScript LocalStore** — `getLocalStore()` factory in `src/runtime/store/` with `tauriLocalStore` (desktop) and `memoryLocalStore` (browser fallback)
+- **Graph entity types** — `Project`, `GraphNode`, `GraphEdge`, `StoredEvent`, `StoredSession` in `src/types/graph.ts`
+- **Tauri-first boot gate** — `usePersistence` hook initializes store before Observatory renders; first-run `system_event` proves persistence
+- **Storage diagnostics** — Runtime → Connection panel shows DB path, schema version, table counts
+- **`LogsView`** — stub component wrapping `RuntimeLogPanel` (fixes broken nav import)
+- **Web fallback banner** — dismissible notice in browser preview mode
+
+### Changed
+- **`npm run dev`** now launches `tauri dev` (desktop app is the default dev entry point)
+- **`npm run dev:web`** added for Vite-only browser preview
+- `tauri.conf.json` `beforeDevCommand` uses `npm run dev:web` to avoid recursive dev script
+- **TaskBoard** and **RuntimePlanView** read from graph projections when store is available
+- **Storage diagnostics** show active project title and ready/blocked node counts
+
+### Notes
+- Dashboard, RuntimeStatusBar, and AgentSession still use `mockTasks`; sessions/reviews remain simulated
+- Desktop mode stores data in `app_data_dir/agentos.db`; browser preview uses in-memory store (resets on reload)
+
+---
+
+## [2.2.0] — 2026-06-11
+
+Phase A Sprint 1 release. See [Unreleased] above for details (to be tagged).
+
 ---
 
 ## [2.1.0] — 2026-05-18

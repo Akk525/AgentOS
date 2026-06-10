@@ -12,6 +12,7 @@ export function OrchestratorProvider({ children }: { children: React.ReactNode }
   const [state, setState] = useState<OrchestratorState>(orchestratorRuntime.getState())
 
   useEffect(() => {
+    orchestratorRuntime.init().catch(console.error)
     return orchestratorRuntime.subscribe(s => setState({ ...s }))
   }, [])
 

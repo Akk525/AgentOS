@@ -1,156 +1,7 @@
 import { motion } from 'framer-motion'
 import { CheckCircle2, Circle, Clock } from 'lucide-react'
 import { cn } from '../../lib/utils'
-
-type PhaseStatus = 'done' | 'current' | 'upcoming' | 'future'
-
-interface RoadmapPhase {
-  version: string
-  title: string
-  status: PhaseStatus
-  description: string
-  items: string[]
-}
-
-const PHASES: RoadmapPhase[] = [
-  {
-    version: 'v0.x',
-    title: 'Foundation',
-    status: 'done',
-    description: 'Core runtime, session model, workspace system, agent lifecycle, command palette.',
-    items: [
-      'RuntimeEngine + RuntimeDaemon',
-      'Event-driven state architecture',
-      'Workspace + worktree simulation',
-      'Session spawn wizard',
-      'Permission escalation model',
-    ],
-  },
-  {
-    version: 'v1.0',
-    title: 'Orchestration Layer',
-    status: 'done',
-    description: 'Multi-session coordination, dependency graphs, review lifecycle, runtime planning.',
-    items: [
-      'Multi-session orchestration',
-      'OrchestratorProvider + runtime plans',
-      'Delegation chains + planner sessions',
-      'RuntimeReasoning — every decision explained',
-      'Blocker + escalation system',
-      'Human override controls',
-    ],
-  },
-  {
-    version: 'v1.1',
-    title: 'OSS Readiness',
-    status: 'current',
-    description: 'Onboarding, demo workspace, documentation, contributor experience.',
-    items: [
-      'Cinematic first-run onboarding',
-      'Keyboard shortcut discoverability',
-      'README + architecture docs',
-      'Contributor guide',
-      'GitHub issue / PR templates',
-      'Roadmap view',
-    ],
-  },
-  {
-    version: 'v2.0',
-    title: 'Real PTY Execution',
-    status: 'upcoming',
-    description: 'Replace simulation with actual shell execution inside sandboxed terminals.',
-    items: [
-      'PTY bridge via Tauri IPC',
-      'Real command output streaming',
-      'Session stderr / exit code handling',
-      'Sandboxed execution environments',
-    ],
-  },
-  {
-    version: 'v2.1',
-    title: 'Tauri Desktop Runtime',
-    status: 'upcoming',
-    description: 'Ship as a native desktop application with full IPC and system integration.',
-    items: [
-      'Tauri v2 app shell',
-      'Native file system access',
-      'System tray daemon indicator',
-      'OS-level notifications',
-    ],
-  },
-  {
-    version: 'v2.2',
-    title: 'Real Git Worktrees',
-    status: 'upcoming',
-    description: 'Replace simulated branches with real isolated git worktrees per session.',
-    items: [
-      'git worktree create/delete lifecycle',
-      'Real branch isolation per session',
-      'Merge + conflict detection',
-      'Worktree status in UI',
-    ],
-  },
-  {
-    version: 'v3.0',
-    title: 'Remote Runner Support',
-    status: 'future',
-    description: 'Extend orchestration to cloud execution environments.',
-    items: [
-      'Remote agent runner protocol',
-      'Distributed session management',
-      'Cloud provider integrations',
-      'Latency-aware scheduling',
-    ],
-  },
-  {
-    version: 'v3.1',
-    title: 'MCP Integration',
-    status: 'future',
-    description: 'Model Context Protocol support for external tools and data sources.',
-    items: [
-      'MCP server registry',
-      'Tool permission model',
-      'Context injection pipeline',
-      'Multi-server coordination',
-    ],
-  },
-  {
-    version: 'v3.2',
-    title: 'Plugin Ecosystem',
-    status: 'future',
-    description: 'Extensible architecture for community-built agent capabilities.',
-    items: [
-      'Plugin API surface',
-      'Sandboxed plugin runtime',
-      'Community plugin registry',
-      'Capability permission model',
-    ],
-  },
-  {
-    version: 'v4.0',
-    title: 'Replay Engine',
-    status: 'future',
-    description: 'Record, replay, and debug any session with full event reconstruction.',
-    items: [
-      'Session event recording',
-      'Step-through replay',
-      'Diff viewer per step',
-      'Branch-point exploration',
-    ],
-  },
-  {
-    version: 'v4.x',
-    title: 'Runtime APIs',
-    status: 'future',
-    description: 'Programmatic access to the AgentOS runtime for external integrations.',
-    items: [
-      'HTTP + WebSocket runtime API',
-      'Webhook event subscriptions',
-      'SDK for external orchestrators',
-      'CI/CD pipeline integration',
-    ],
-  },
-]
+import { ROADMAP_PHASES, type RoadmapPhase, type PhaseStatus } from '../../data/roadmapPhases'
 
 const STATUS_CONFIG: Record<PhaseStatus, {
   badge: string; badgeText: string; dot: React.ReactNode; opacity: string
@@ -181,7 +32,7 @@ const STATUS_CONFIG: Record<PhaseStatus, {
   },
 }
 
-function PhaseCard({ phase, index }: { phase: RoadmapPhase; index: number }) {
+function PhaseCard({ phase, index, total }: { phase: RoadmapPhase; index: number; total: number }) {
   const cfg = STATUS_CONFIG[phase.status]
   const isCurrent = phase.status === 'current'
 
@@ -190,15 +41,11 @@ function PhaseCard({ phase, index }: { phase: RoadmapPhase; index: number }) {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.04, duration: 0.18 }}
-      className={cn(
-        'flex gap-4',
-        cfg.opacity,
-      )}
+      className={cn('flex gap-4', cfg.opacity)}
     >
-      {/* Timeline */}
       <div className="flex flex-col items-center flex-shrink-0 pt-1">
         {cfg.dot}
-        {index < PHASES.length - 1 && (
+        {index < total - 1 && (
           <div className={cn(
             'w-px flex-1 mt-2',
             isCurrent ? 'bg-violet-500/20' : 'bg-white/[0.04]',
@@ -206,7 +53,6 @@ function PhaseCard({ phase, index }: { phase: RoadmapPhase; index: number }) {
         )}
       </div>
 
-      {/* Card */}
       <div className={cn(
         'flex-1 pb-6 rounded-2xl',
         isCurrent ? 'glass border border-violet-500/15 p-4 -mt-1 mb-2' : '',
@@ -246,12 +92,11 @@ function PhaseCard({ phase, index }: { phase: RoadmapPhase; index: number }) {
 }
 
 export function RoadmapView() {
-  const done = PHASES.filter(p => p.status === 'done').length
-  const total = PHASES.length
+  const done = ROADMAP_PHASES.filter(p => p.status === 'done').length
+  const total = ROADMAP_PHASES.length
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* Header */}
       <div className="px-6 py-4 border-b border-white/[0.05] flex-shrink-0">
         <div className="flex items-end justify-between">
           <div>
@@ -262,7 +107,7 @@ export function RoadmapView() {
               AgentOS development plan
             </div>
             <p className="text-[11px] font-mono text-slate-600 mt-0.5">
-              From local prototype to open platform.
+              Pillar-based phases toward Year 1 and Year 2 success.
             </p>
           </div>
           <div className="text-right">
@@ -276,14 +121,13 @@ export function RoadmapView() {
         </div>
       </div>
 
-      {/* Timeline */}
       <div className="flex-1 overflow-y-auto scrollbar-thin px-6 py-5">
-        {PHASES.map((phase, i) => (
-          <PhaseCard key={phase.version} phase={phase} index={i} />
+        {ROADMAP_PHASES.map((phase, i) => (
+          <PhaseCard key={phase.version} phase={phase} index={i} total={total} />
         ))}
 
         <div className="pt-4 pb-8 text-center text-[9px] font-mono text-slate-800">
-          Roadmap is indicative — priorities shift with community feedback.
+          Full plan: docs/ROADMAP.md · Vision: docs/PRD.md
         </div>
       </div>
     </div>

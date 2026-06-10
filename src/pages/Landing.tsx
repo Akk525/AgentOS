@@ -1,17 +1,18 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import {
-  Circle, ChevronRight, ExternalLink, GitBranch, Network,
-  Brain, Shield, ArrowRight, CheckCircle2, Clock, AlertTriangle,
+  Circle, ChevronRight, ExternalLink, Network,
+  Shield, ArrowRight, CheckCircle2, Clock, AlertTriangle,
+  Layers, Play,
 } from 'lucide-react'
 import { cn } from '../lib/utils'
 
 // ── Live preview data (static — landing doesn't mount OrchestratorProvider) ──
 
 const PREVIEW_SESSIONS = [
-  { name: 'Cipher',  role: 'debugger',      branch: 'fix/auth-race',        status: 'running',   tokens: 42.8, color: 'bg-cyan-400' },
+  { name: 'Cipher',  role: 'builder',       branch: 'fix/auth-race',        status: 'running',   tokens: 42.8, color: 'bg-cyan-400' },
   { name: 'Echo',    role: 'reviewer',      branch: 'fix/auth-race',        status: 'reviewing', tokens: 18.2, color: 'bg-violet-400' },
-  { name: 'Atlas',   role: 'test-writer',   branch: 'test/payment-int',     status: 'running',   tokens: 34.6, color: 'bg-emerald-400' },
+  { name: 'Atlas',   role: 'tester',        branch: 'test/payment-int',     status: 'running',   tokens: 34.6, color: 'bg-emerald-400' },
   { name: 'Rex',     role: 'refactorer',    branch: 'refactor/parser-v2',   status: 'blocked',   tokens: 12.4, color: 'bg-amber-400' },
   { name: 'Nexus',   role: 'architect',     branch: 'plan/monorepo',        status: 'running',   tokens: 28.9, color: 'bg-blue-400' },
   { name: 'Lyra',    role: 'planner',       branch: 'plan/auth-refactor',   status: 'planning',  tokens:  8.4, color: 'bg-violet-300' },
@@ -43,7 +44,6 @@ function LivePreview() {
 
   return (
     <div className="glass rounded-2xl border border-white/[0.08] overflow-hidden shadow-2xl">
-      {/* Header */}
       <div className="flex items-center gap-2 px-4 py-2.5 border-b border-white/[0.05] bg-white/[0.02]">
         <div className="flex gap-1.5">
           <div className="w-2.5 h-2.5 rounded-full bg-crimson-600/70" />
@@ -51,7 +51,7 @@ function LivePreview() {
           <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/50" />
         </div>
         <div className="flex-1 text-center text-[10px] font-mono text-slate-700">
-          AgentOS — Runtime
+          AgentOS — Observatory
         </div>
         <motion.div
           className="text-[8px] font-mono text-emerald-600"
@@ -62,7 +62,6 @@ function LivePreview() {
         </motion.div>
       </div>
 
-      {/* Session rows */}
       <div className="px-4 py-3 space-y-1.5">
         {PREVIEW_SESSIONS.map((s, i) => (
           <motion.div
@@ -97,7 +96,6 @@ function LivePreview() {
         ))}
       </div>
 
-      {/* Provider bars */}
       <div className="px-4 py-2.5 border-t border-white/[0.04] bg-white/[0.01]">
         <div className="grid grid-cols-3 gap-3">
           {[
@@ -129,42 +127,48 @@ function LivePreview() {
 
 const FEATURES = [
   {
-    icon: <Network size={20} />,
+    icon: <Layers size={20} />,
     color: 'text-cyan-400',
     border: 'border-cyan-500/15',
-    title: 'Multi-session orchestration',
-    desc: 'Run debugger, test-writer, reviewer, and planner sessions concurrently. Visualise dependencies, blockers, and review chains in a live graph.',
+    title: 'Task graph engine',
+    desc: 'The graph is the source of truth — not Kanban, not chat. Dependencies, ownership, execution history, and outcomes all live in one persistent DAG.',
   },
   {
-    icon: <GitBranch size={20} />,
+    icon: <Network size={20} />,
     color: 'text-violet-400',
     border: 'border-violet-500/15',
-    title: 'Runtime planning',
-    desc: 'A planner session decomposes tasks into subtasks, assigns roles, and coordinates reviewers — without you managing the logistics manually.',
-  },
-  {
-    icon: <Brain size={20} />,
-    color: 'text-amber-400',
-    border: 'border-amber-500/15',
-    title: 'Interpretable decisions',
-    desc: 'Every orchestration decision is logged: why a session was assigned, why a queue delay occurred, why a blocker was flagged. No black boxes.',
+    title: 'Agent Observatory',
+    desc: 'Supervise autonomous work through graph, timeline, worktrees, diffs, and cost — not by chatting with agents. Think mission control for software development.',
   },
   {
     icon: <Shield size={20} />,
     color: 'text-emerald-400',
     border: 'border-emerald-500/15',
-    title: 'Human supervision',
-    desc: 'Override any assignment. Escalate any blocker. Pause any session. The runtime suggests; you decide. Controlled autonomy by design.',
+    title: 'Human governance',
+    desc: 'Adjustable autonomy from Manual to Full Auto. Approval gates for merge, deploy, and destructive actions. Humans decide. Agents execute.',
+  },
+  {
+    icon: <Play size={20} />,
+    color: 'text-amber-400',
+    border: 'border-amber-500/15',
+    title: 'Software provenance',
+    desc: 'Every feature traceable from user request through planning, implementation, review, and merge. Replay any decision chain. Nothing disappears.',
   },
 ]
 
 // ── Differentiators ───────────────────────────────────────────────────────────
 
 const NOT_IS = [
-  { not: 'A chatbot interface',          is: 'An operational runtime layer'  },
-  { not: 'Autonomous AGI',              is: 'Supervised delegation'          },
-  { not: 'An IDE replacement',          is: 'Infrastructure for agents'      },
-  { not: 'Magic AI that replaces you',  is: 'Tools that keep you in control' },
+  { not: 'A chatbot interface',          is: 'An operating system for the SDLC' },
+  { not: 'Autonomous AGI',              is: 'Supervised agent organization'     },
+  { not: 'Another coding assistant',    is: 'Coordination infrastructure'       },
+  { not: 'Magic AI that replaces you',  is: 'Tools that keep you in control'    },
+]
+
+const POSITIONING = [
+  { product: 'Cursor',      metaphor: 'AI inside the editor'   },
+  { product: 'Claude Code', metaphor: 'AI inside the terminal' },
+  { product: 'AgentOS',     metaphor: 'AI inside the SDLC'     },
 ]
 
 // ── Main component ────────────────────────────────────────────────────────────
@@ -179,7 +183,6 @@ export function Landing({ onEnter }: LandingProps) {
       className="min-h-screen overflow-y-auto"
       style={{ background: '#06060a', color: '#e2e8f0' }}
     >
-      {/* Background */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="absolute inset-0 grid-overlay opacity-40" />
         <div className="absolute -top-40 -left-40 w-[800px] h-[600px] rounded-full"
@@ -190,14 +193,13 @@ export function Landing({ onEnter }: LandingProps) {
 
       <div className="relative z-10 max-w-5xl mx-auto px-6">
 
-        {/* ── Nav ── */}
         <nav className="flex items-center justify-between py-6">
           <div className="flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-lg bg-crimson-600 flex items-center justify-center shadow-[0_0_16px_rgba(244,63,94,0.35)]">
               <Circle size={12} className="text-white fill-white" />
             </div>
             <span className="text-[14px] font-semibold text-white tracking-tight">AgentOS</span>
-            <span className="text-[10px] font-mono text-slate-600 ml-1">v1.3 alpha</span>
+            <span className="text-[10px] font-mono text-slate-600 ml-1">v2.1 alpha</span>
           </div>
           <div className="flex items-center gap-4 text-[12px] font-mono">
             <a href="https://github.com/your-org/agentos" target="_blank" rel="noreferrer"
@@ -216,7 +218,6 @@ export function Landing({ onEnter }: LandingProps) {
           </div>
         </nav>
 
-        {/* ── Hero ── */}
         <section className="pt-16 pb-20">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -228,13 +229,13 @@ export function Landing({ onEnter }: LandingProps) {
             </div>
 
             <h1 className="text-5xl font-semibold text-white leading-[1.1] tracking-tight mb-6 max-w-2xl">
-              Local-first runtime for<br />
-              <span className="text-slate-400">steerable coding agents.</span>
+              Describe an outcome.<br />
+              <span className="text-slate-400">Supervise the team that builds it.</span>
             </h1>
 
             <p className="text-[16px] text-slate-500 leading-relaxed max-w-xl mb-10 font-mono">
-              Supervise multi-agent orchestration. Understand every decision.
-              Override anything. Stay in control.
+              The open operating system for autonomous software development.
+              Agents plan, implement, review, and test. You govern.
             </p>
 
             <div className="flex items-center gap-4 mb-16">
@@ -242,7 +243,7 @@ export function Landing({ onEnter }: LandingProps) {
                 onClick={onEnter}
                 className="flex items-center gap-2 px-6 py-3 rounded-xl bg-crimson-600 text-white text-[13px] font-mono hover:bg-crimson-500 transition-colors shadow-[0_0_24px_rgba(244,63,94,0.25)]"
               >
-                Launch demo
+                Launch Observatory
                 <ArrowRight size={14} />
               </button>
               <a
@@ -256,7 +257,6 @@ export function Landing({ onEnter }: LandingProps) {
               </a>
             </div>
 
-            {/* Live preview */}
             <motion.div
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
@@ -267,7 +267,39 @@ export function Landing({ onEnter }: LandingProps) {
           </motion.div>
         </section>
 
-        {/* ── Not / Is ── */}
+        {/* Category positioning */}
+        <section className="py-16 border-t border-white/[0.05]">
+          <div className="text-[10px] font-mono text-slate-700 uppercase tracking-widest mb-8">
+            Category positioning
+          </div>
+          <div className="grid grid-cols-1 gap-3">
+            {POSITIONING.map((row, i) => (
+              <motion.div
+                key={row.product}
+                initial={{ opacity: 0, x: -8 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.06, duration: 0.2 }}
+                className={cn(
+                  'flex items-center gap-4 text-[12px] font-mono',
+                  row.product === 'AgentOS' && 'text-white',
+                )}
+              >
+                <div className={cn(
+                  'w-28 flex-shrink-0 font-semibold',
+                  row.product === 'AgentOS' ? 'text-crimson-400' : 'text-slate-500',
+                )}>
+                  {row.product}
+                </div>
+                <div className="text-slate-800">→</div>
+                <div className={row.product === 'AgentOS' ? 'text-slate-200' : 'text-slate-500'}>
+                  {row.metaphor}
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </section>
+
         <section className="py-16 border-t border-white/[0.05]">
           <div className="text-[10px] font-mono text-slate-700 uppercase tracking-widest mb-8">
             What AgentOS is
@@ -295,13 +327,12 @@ export function Landing({ onEnter }: LandingProps) {
           </div>
         </section>
 
-        {/* ── Features ── */}
         <section className="py-16 border-t border-white/[0.05]">
           <div className="text-[10px] font-mono text-slate-700 uppercase tracking-widest mb-3">
-            Capabilities
+            Pillars
           </div>
           <h2 className="text-2xl font-semibold text-white mb-10">
-            Everything the runtime surfaces.
+            Built for coordinating autonomous software work.
           </h2>
           <div className="grid grid-cols-2 gap-4">
             {FEATURES.map((f, i) => (
@@ -321,60 +352,45 @@ export function Landing({ onEnter }: LandingProps) {
           </div>
         </section>
 
-        {/* ── Architecture ── */}
         <section id="architecture" className="py-16 border-t border-white/[0.05]">
           <div className="text-[10px] font-mono text-slate-700 uppercase tracking-widest mb-3">
             Architecture
           </div>
           <h2 className="text-2xl font-semibold text-white mb-4">
-            Designed for real execution.
+            Goals → Task Graph → Agent Organization → Software
           </h2>
           <p className="text-[12px] font-mono text-slate-600 leading-relaxed mb-8 max-w-xl">
-            The runtime architecture is built to replace the simulation layer with real PTY execution,
-            git worktrees, and provider calls — without changing the UI or orchestration layers.
+            The task graph is the source of truth. The codebase is a projection.
+            Real execution layers slot in behind the Observatory UI without rewriting it.
           </p>
 
           <div className="glass rounded-2xl border border-white/[0.07] p-6 font-mono text-[11px] leading-relaxed">
-            <pre className="text-slate-600 overflow-x-auto">{`┌──────────────────────────────────────────────────────────┐
-│                    UI Layer (React)                      │
-│  Dashboard · Orchestration · Plan · Reviews · Reasoning  │
-└───────────────────────┬──────────────────────────────────┘
-                        │ useOrchestrator / useRuntime
-┌───────────────────────▼──────────────────────────────────┐
-│  OrchestratorContext          RuntimeContext             │
-│  • activeSessions             • session state            │
-│  • runtimePlans               • patch lifecycle          │
-│  • reasoning log              • worktree tracking        │
-│  • blockers                   • provider health          │
-└───────┬───────────────────────────────────┬──────────────┘
-        │ subscribe()                       │ subscribe()
-┌───────▼──────────────┐       ┌────────────▼─────────────┐
-│  OrchestratorRuntime │       │     RuntimeEngine        │
-└──────────────────────┘       └────────────┬─────────────┘
-                                            │
-                                ┌───────────▼──────────────┐
-                                │   RuntimeDaemon          │
-                                │   ProviderBridge         │
-                                │   ProviderRegistry       │
-                                └──────────────────────────┘`}</pre>
+            <pre className="text-slate-600 overflow-x-auto">{`Human Goal
+    ↓
+Task Graph Engine  ← source of truth
+    ↓
+Agent Organization (planner · builder · reviewer · tester)
+    ↓
+Worktree Runtime   ← isolated per task
+    ↓
+Software System    ← projection of the graph`}</pre>
           </div>
 
           <div className="mt-4 flex items-start gap-2 text-[10px] font-mono text-slate-700">
             <AlertTriangle size={10} className="text-amber-700 mt-0.5 flex-shrink-0" />
-            Currently a browser simulation. Real PTY execution, Tauri IPC, and git worktrees are v2.x milestones.
+            v2.1 alpha: Observatory UI + real worktrees/commands on desktop. Task graph engine and agent loop in progress.
           </div>
         </section>
 
-        {/* ── Roadmap strip ── */}
         <section className="py-16 border-t border-white/[0.05]">
           <div className="text-[10px] font-mono text-slate-700 uppercase tracking-widest mb-8">
             Roadmap
           </div>
           <div className="grid grid-cols-3 gap-3">
             {[
-              { label: 'Now',      items: ['v1.x — OSS readiness', 'Onboarding + docs', 'CI + security'] },
-              { label: 'Next',     items: ['v2.0 — Real PTY', 'v2.1 — Tauri desktop', 'v2.2 — Git worktrees'] },
-              { label: 'Future',   items: ['v3.x — Remote runners', 'v3.x — MCP integration', 'v4.x — Runtime APIs'] },
+              { label: 'Done',     items: ['Foundation UI + orchestration', 'Tauri desktop + worktrees', 'Allowlisted commands + diff'] },
+              { label: 'Current',  items: ['Task graph engine', 'Local persistence', 'Goal entry flow'] },
+              { label: 'Year 1',   items: ['Real agent loop', 'Governance + merge approval', 'Working app end-to-end'] },
             ].map((col, i) => (
               <motion.div
                 key={col.label}
@@ -384,13 +400,13 @@ export function Landing({ onEnter }: LandingProps) {
                 transition={{ delay: i * 0.1, duration: 0.2 }}
                 className="glass rounded-xl border border-white/[0.06] p-4"
               >
-                <div className={cn('text-[9px] font-mono uppercase tracking-widest mb-3', i === 0 ? 'text-crimson-400' : 'text-slate-700')}>
+                <div className={cn('text-[9px] font-mono uppercase tracking-widest mb-3', i === 0 ? 'text-emerald-500' : i === 1 ? 'text-crimson-400' : 'text-slate-700')}>
                   {col.label}
                 </div>
                 <ul className="space-y-1.5">
                   {col.items.map(item => (
                     <li key={item} className="flex items-center gap-2 text-[10px] font-mono text-slate-600">
-                      <Clock size={8} className={i === 0 ? 'text-crimson-500' : 'text-slate-800'} />
+                      <Clock size={8} className={i === 1 ? 'text-crimson-500' : 'text-slate-800'} />
                       {item}
                     </li>
                   ))}
@@ -400,7 +416,6 @@ export function Landing({ onEnter }: LandingProps) {
           </div>
         </section>
 
-        {/* ── OSS CTA ── */}
         <section className="py-16 border-t border-white/[0.05]">
           <motion.div
             initial={{ opacity: 0, y: 12 }}
@@ -412,18 +427,17 @@ export function Landing({ onEnter }: LandingProps) {
               Open source
             </div>
             <h2 className="text-2xl font-semibold text-white mb-3">
-              Built to be extended.
+              Built for solo developers.
             </h2>
             <p className="text-[13px] font-mono text-slate-600 mb-8 max-w-md mx-auto leading-relaxed">
-              Apache 2.0. Event-driven architecture designed for real execution layers.
-              Contributions welcome.
+              Apache 2.0. Local-first. No cloud dependency. Coordinate autonomous software work — not just generate code.
             </p>
             <div className="flex items-center justify-center gap-4">
               <button
                 onClick={onEnter}
                 className="flex items-center gap-2 px-6 py-3 rounded-xl bg-crimson-600 text-white text-[13px] font-mono hover:bg-crimson-500 transition-colors shadow-[0_0_24px_rgba(244,63,94,0.25)]"
               >
-                Launch demo
+                Launch Observatory
                 <ArrowRight size={14} />
               </button>
               <a
@@ -439,13 +453,12 @@ export function Landing({ onEnter }: LandingProps) {
           </motion.div>
         </section>
 
-        {/* ── Footer ── */}
         <footer className="py-8 border-t border-white/[0.04] flex items-center justify-between text-[10px] font-mono text-slate-800">
           <span>© 2025 AgentOS Contributors — Apache 2.0</span>
           <div className="flex items-center gap-4">
             <a href="https://github.com/your-org/agentos" className="hover:text-slate-600 transition-colors">GitHub</a>
             <span>·</span>
-            <span>CONTRIBUTING.md</span>
+            <span>docs/PRD.md</span>
             <span>·</span>
             <span>SECURITY.md</span>
           </div>

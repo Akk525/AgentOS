@@ -1,35 +1,54 @@
 # AgentOS
 
-**Local-first runtime environment for steerable coding agents.**
+**The Open Operating System for Autonomous Software Development**
 
 [![CI](https://github.com/your-org/agentos/actions/workflows/ci.yml/badge.svg)](https://github.com/your-org/agentos/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-2.0.0--alpha-orange.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2.1.0--alpha-orange.svg)](CHANGELOG.md)
 
-AgentOS is an open-source operating environment that lets you supervise, steer, and understand intelligent coding agents. It is not a chatbot wrapper. It is not an autonomous swarm. It is a controlled delegation environment — built for developers who want agents to do real work without losing visibility or control.
+AgentOS enables developers to describe a software outcome and supervise a team of AI agents that plan, implement, review, test, and maintain the resulting system.
+
+Unlike AI coding assistants that operate through chat, AgentOS provides a **persistent execution environment** where autonomous software workflows can be observed, controlled, replayed, and governed.
+
+**The user remains the ultimate authority. Agents execute. Humans decide.**
+
+---
+
+## Category Positioning
+
+| Product | What it is |
+|---------|------------|
+| **Cursor** | AI inside the editor |
+| **Claude Code** | AI inside the terminal |
+| **AgentOS** | AI inside the software development lifecycle |
+
+AgentOS is not a chatbot wrapper. It is not an autonomous swarm. It is an open operating system for coordinating autonomous software work — built for solo developers who want agents to do real work without losing visibility or control.
+
+**Documentation:** [PRD (future state)](docs/PRD.md) · [Gap analysis](docs/GAP_ANALYSIS.md) · [Roadmap](docs/ROADMAP.md) · [Architecture](ARCHITECTURE.md)
 
 ---
 
 ## Current Status
 
-**v2.0 Alpha — desktop shell + first real integrations.**
+**v2.2 Alpha — Tauri-first desktop app with SQLite persistence (Phase A Sprint 1).**
 
-AgentOS now runs in two modes:
+The codebase is a high-fidelity **Agent Observatory** prototype with real desktop integrations and a durable local store. `npm run dev` launches the native Tauri app by default. The **task graph engine** and **real agent loop** are next per the [roadmap](docs/ROADMAP.md).
 
-**Browser mode** (`npm run dev`) — full UI with simulated runtime. No dependencies. No API keys. Good for exploring the product.
+**Desktop mode** (`npm run dev`) — default; requires Rust:
+- SQLite store at `app_data_dir/agentos.db` (projects, graph nodes/edges, events, sessions)
+- Boot initializes the store before the Observatory renders
+- Native folder picker, real git validation, worktree creation, allowlisted commands, live diffs
+- Ollama availability check via HTTP ping to `localhost:11434`
+- Storage diagnostics in Runtime → Connection
 
-**Desktop mode** (`npm run tauri:dev`) — Tauri-wrapped desktop app with real local integrations:
-- Native folder picker for workspace selection
-- Real `.git/HEAD` detection (read-only) via Rust
-- Real Ollama availability check via HTTP ping to `localhost:11434`
-- Environment mode indicator in the Runtime view
+**Browser preview** (`npm run dev:web`) — Vite-only UI with simulated runtime and no persistence. Useful for UI-only work or CI.
 
-The following remain simulated in v2.0:
-- LLM session execution (no real agents running)
-- Git worktree creation (no filesystem writes)
-- Background daemon (no sidecar process)
-
-This is intentional. The architecture is designed so that real execution layers slot in behind the same interfaces without changing the UI or orchestration layers. See the [Roadmap](#roadmap) for planned milestones.
+The following remain simulated or incomplete:
+- LLM agent execution (no real planner/builder/reviewer loop)
+- Task graph as source of truth (Kanban and plans still use mock data; store is ready)
+- UI hydration from store (orchestrator not yet wired to `LocalStore`)
+- Background daemon (browser singleton only)
+- Replay engine (UI stubs only)
 
 > **Requires Rust to build in desktop mode.** See [Desktop Setup](#desktop-setup) below.
 
@@ -44,26 +63,29 @@ This is intentional. The architecture is designed so that real execution layers 
 
 ## What is AgentOS?
 
-AgentOS models a local software organisation. Multiple agents run in parallel sessions, coordinate through a planner, submit patches for review, and surface every decision they make. The human remains in control at all times.
+AgentOS models a local software organization. You describe a goal. A planner decomposes it into a **task graph**. Specialized agents execute work in isolated worktrees. You supervise through the Observatory — not by chatting with agents, but by watching the graph, timeline, diffs, and approval gates.
 
 You can:
-- watch agents work in real time across workspaces and branches
-- understand why orchestration decisions were made (assignments, queues, blockers)
+- describe a project outcome and generate a structured plan
+- watch agents work across isolated worktrees and branches
+- inspect the task graph, dependencies, and execution timeline
+- review diffs and approve merges through governance gates
 - override any assignment, escalate any blocker, or pause any session
-- review patches before they merge
-- trace every event through a live orchestration feed
+- trace every decision through the orchestration reasoning log
 
 ---
 
 ## Core Philosophy
 
-**Controlled autonomy.** Agents should never have arbitrary execution authority. Every significant action is supervised, logged, and overridable.
+**Goals, not prompts.** You describe outcomes. The task graph is the source of truth. The codebase is a projection of that graph.
 
-**Interpretable orchestration.** The runtime should explain itself. Every assignment, queue delay, and blocker has a logged reason. No black boxes.
+**Agents are workers, not products.** You supervise the organization. You do not chat with most agents directly.
 
-**Local-first.** The runtime runs on your machine. No cloud account required. No data leaves without your knowledge.
+**Controlled autonomy.** Autonomy is adjustable (Manual → Assisted → Autonomous → Full Auto). Governance is never optional.
 
-**Supervised delegation.** Agents are delegated work, not given authority. The planner session decomposes tasks. Worker sessions execute. Review sessions audit. You decide what merges.
+**Interpretable orchestration.** Every assignment, queue delay, and blocker has a logged reason. No black boxes.
+
+**Local-first.** The runtime runs on your machine. No cloud account required. Works on a laptop, in an enterprise network, on an airplane.
 
 ---
 
@@ -71,8 +93,8 @@ You can:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        UI Layer (React)                         │
-│  Dashboard · Orchestration · Plan · Reviews · Reasoning         │
+│                   Agent Observatory (React UI)                  │
+│  Task Graph · Timeline · Worktrees · Governance · Cost        │
 └───────────────────────┬─────────────────────────────────────────┘
                         │ useOrchestrator / useRuntime
 ┌───────────────────────▼─────────────────────────────────────────┐
@@ -86,21 +108,18 @@ You can:
 │ • activeSessions  │           │ • session state                  │
 │ • runtimePlans    │           │ • event bus                      │
 │ • reasoning       │           │ • patch lifecycle                │
-│ • blockers        │           │ • worktree simulation            │
+│ • blockers        │           │ • worktree lifecycle             │
 │ • timeline        │           │                                  │
 └───────────────────┘           └──────────┬──────────────────────┘
                                            │
                                ┌───────────▼──────────┐
-                               │   RuntimeDaemon       │
-                               │   RuntimeBridge       │
-                               │   ProviderBridge      │
+                               │   DesktopBridge       │
                                │   ProviderRegistry    │
+                               │   (Tauri / Web)       │
                                └──────────────────────┘
 ```
 
-State flows in one direction: runtime singletons → context subscriptions → React UI. There is no global Redux store. Each runtime singleton manages its own state and notifies listeners on every change.
-
-See [ARCHITECTURE.md](ARCHITECTURE.md) for the full event flow and layer responsibilities.
+State flows in one direction: runtime singletons → context subscriptions → React UI. See [ARCHITECTURE.md](ARCHITECTURE.md) for current implementation and target architecture (Task Graph Engine, event log, projection model).
 
 ---
 
@@ -108,41 +127,41 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the full event flow and layer respons
 
 | Concept | Description |
 |---|---|
-| **Session** | One agent executing one task in one branch |
-| **Workspace** | A repository mounted into the runtime |
-| **Worktree** | An isolated branch snapshot for a session |
-| **Plan** | A decomposed task graph created by a planner session |
-| **Subtask** | A unit of delegated work within a plan |
-| **Patch** | The diff a session produces, tracked through a lifecycle |
-| **Review** | A separate reviewer session auditing a patch |
-| **Blocker** | A dependency or resource constraint halting a session |
-| **Reasoning** | A logged explanation for every orchestration decision |
-| **Provider** | An LLM backend (Anthropic, OpenAI, Ollama) |
+| **Goal** | A natural-language software outcome the developer wants built |
+| **Task Graph** | The canonical DAG of epics, tasks, dependencies, and outcomes |
+| **Epic** | A major feature area (e.g., Authentication, Billing) |
+| **Task** | A unit of work with acceptance criteria, owned by a graph node |
+| **Agent** | A specialized worker (planner, builder, reviewer, tester) — not a chatbot |
+| **Session** | One agent executing one graph node in one worktree |
+| **Worktree** | An isolated git branch snapshot for a session |
+| **Observatory** | The supervision UI — graph, timeline, diffs, governance, cost |
+| **Governance** | Adjustable autonomy modes and approval gates |
+| **Provider** | An LLM backend (Anthropic, OpenAI, Ollama, etc.) |
 
 ---
 
-## Session Roles
+## Agent Roles
 
 | Role | Responsibility |
 |---|---|
-| `planner` | Decomposes tasks, assigns subtasks, coordinates reviewers |
-| `debugger` | Diagnoses and patches bugs |
-| `test-writer` | Generates and updates test suites |
+| `planner` | Decomposes goals into epics and tasks; updates scope |
+| `builder` | Implements graph nodes in isolated worktrees |
+| `reviewer` | Audits patches; approves or rejects |
+| `tester` | Runs tests; failures generate new graph nodes |
 | `refactorer` | Restructures code without changing behaviour |
-| `reviewer` | Audits patches, flags issues, approves or rejects |
-| `architect` | Designs system-level solutions and migration plans |
+| `architect` | Designs system-level solutions |
 
 ---
 
-## Orchestration Views
+## Observatory Views
 
-- **Plan** — active runtime plan with delegation chain and blocker status
-- **Graph** — SVG session dependency graph with provider bindings
-- **Sessions** — live table of all active sessions with status and stats
-- **Queue** — sessions waiting for provider capacity or dependencies
-- **Reviews** — active review sessions with comment feeds
-- **Reasoning** — chronological log of every orchestration decision
+- **Task Graph** — dependency structure of all work (source of truth)
+- **Plan** — active runtime plan with delegation chain and blockers
 - **Timeline** — global event feed across all sessions
+- **Sessions** — live agent execution detail with diffs and tests
+- **Reviews** — active review sessions with approval gates
+- **Reasoning** — chronological log of every orchestration decision
+- **Governance** — autonomy mode and approval gate configuration
 
 ---
 
@@ -155,22 +174,23 @@ npm install
 npm run dev
 ```
 
-Opens at `http://localhost:5173`. The demo runtime starts automatically with a populated orchestration: 6 sessions, 1 active plan, live review chain, reasoning log.
+Opens the native AgentOS window (Vite serves the UI at `http://localhost:5173` in the background). The demo orchestration still uses mock data until TaskGraphEngine lands.
 
-**Requirements:** Node.js 18+, npm 9+
+**Requirements:** Node.js 18+, npm 9+, **Rust** (for default desktop mode)
 
-**Stack:** React 19, TypeScript 6, Vite 8, Tailwind CSS v3, Framer Motion 12
+**Stack:** React 19, TypeScript 6, Vite 8, Tailwind CSS v3, Framer Motion 12, Tauri v2 (desktop)
 
 ### Available scripts
 
 ```bash
-npm run dev        # development server (browser mode)
+npm run dev        # Tauri desktop app (default — requires Rust)
+npm run dev:web    # Vite browser preview only (no persistence)
 npm run build      # typecheck + production build
 npm run typecheck  # typecheck only (no build output)
 npm run lint       # ESLint
 npm run preview    # serve production build locally
 npm run clean      # remove dist/
-npm run tauri:dev  # desktop app (requires Rust — see below)
+npm run tauri:dev  # alias for npm run dev
 npm run tauri:build # desktop release build
 ```
 
@@ -182,41 +202,38 @@ Copy `.env.example` to `.env` for provider configuration. No keys are required t
 
 ## Desktop Setup
 
-To run AgentOS as a native desktop app with real local integrations:
+`npm run dev` is the desktop app. Rust is required.
 
 **Prerequisites:**
 1. Install Rust: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
-2. Install Tauri CLI and dependencies: `npm install`
+2. Install dependencies: `npm install`
 3. On macOS/Linux: no extra steps. On Windows: install WebView2.
 
 **Run:**
 ```bash
-npm run tauri:dev
+npm run dev
 ```
 
-This launches the full React UI inside a native window, with:
-- Real folder picker when mounting workspaces
-- Real `.git/HEAD` branch detection
-- Real Ollama availability ping (`localhost:11434`)
-- Environment badge in the Runtime view showing "Desktop mode"
-
-The browser `npm run dev` workflow continues to work unchanged — all real integrations fall back to safe simulated responses in the browser via `WebBridge`.
+This launches the native window with SQLite persistence, real worktree creation, allowlisted command execution, live git diffs, and Ollama detection. Use `npm run dev:web` for a browser-only preview without persistence.
 
 ---
 
 ## Known Limitations
 
-These are known boundaries of the current prototype, not bugs:
+These are known boundaries of the current alpha, not bugs:
 
 | Limitation | Notes |
 |---|---|
-| No real LLM calls | All session output is simulated. Provider bridges exist but are mocked. |
-| No real PTY execution | Shell commands are not executed. Planned for v2.0 with Tauri. |
-| No real git worktrees | Branches are simulated. Real isolation planned for v2.2. |
-| No persistent storage | State resets on page reload. No database. |
-| No daemon process | The daemon is a browser singleton. Tauri IPC planned for v2.1. |
-| Single machine only | No remote runner support yet. Planned for v3.0. |
-| No plugin system | Plugin API planned for v3.2. |
+| No real LLM agent loop | Session output is simulated. Provider bridges exist for health checks only. |
+| Task graph not canonical | Kanban and plans use separate mock data. `LocalStore` ready; TaskGraphEngine next. |
+| UI not hydrated from store | SQLite persists in desktop mode; orchestrator still loads mocks on boot. |
+| No replay engine | UI stubs only. Planned for Year 2. |
+| No agent memory | Planned for Year 2; Memora integration point documented in PRD. |
+| PTY streaming | Commands run via allowlist; no interactive terminal yet. |
+| No daemon process | Browser singleton. Sidecar planned. |
+| Single machine only | Remote runners explicitly deferred beyond 24-month horizon. |
+
+See [docs/GAP_ANALYSIS.md](docs/GAP_ANALYSIS.md) for the full pillar-by-pillar status.
 
 ---
 
@@ -229,57 +246,37 @@ src/
 │   ├── orchestration/   # Graph, Plan, Sessions, Queue, Reviews, Reasoning, Timeline
 │   ├── onboarding/      # First-run experience
 │   ├── roadmap/         # Roadmap view
-│   ├── sessions/        # SpawnSessionModal, SessionArchivePanel
+│   ├── sessions/        # SpawnSessionModal, AgentSession, Timeline
 │   ├── workspace/       # WorkspaceManager, WorkspaceCard
-│   ├── runtime/         # RuntimeView, diagnostics, status bar
-│   ├── dashboard/       # Dashboard overview
-│   ├── tasks/           # TaskBoard, NewTaskModal
-│   ├── agents/          # AgentsView
-│   ├── command/         # CommandPalette
-│   └── shared/          # NotificationToast, ShortcutsOverlay
-├── context/
-│   ├── OrchestratorContext.tsx   # Orchestration state + actions
-│   └── RuntimeContext.tsx        # Runtime state + actions
-├── runtime/
-│   ├── runtimeEngine.ts          # Core event-driven engine
-│   ├── runtimeDaemon.ts          # Daemon simulation
-│   ├── runtimeBridge.ts          # Bridge between client and engine
-│   ├── runtimeClient.ts          # Public client API
-│   ├── runtimeReducer.ts         # State reducer
-│   ├── runtimeTypes.ts           # Event/command type definitions
-│   ├── orchestratorRuntime.ts    # Orchestration singleton
-│   └── providers/                # Provider registry and bridges
-├── data/
-│   ├── mockOrchestration.ts      # Demo orchestration data
-│   └── mockPlanning.ts           # Demo planning / reasoning data
-├── hooks/
-│   └── useFirstRun.ts
-├── types/
-│   └── index.ts                  # All shared TypeScript types
-└── lib/
-    └── utils.ts
+│   ├── runtime/         # RuntimeView, diagnostics, governance
+│   ├── dashboard/       # Mission Control overview
+│   ├── tasks/           # TaskBoard (graph projection, in progress)
+│   ├── agents/          # Agent registry view
+│   └── shared/          # Design system components
+├── context/             # OrchestratorContext, RuntimeContext
+├── runtime/             # RuntimeEngine, OrchestratorRuntime, providers, desktop bridge, LocalStore
+├── data/                # Mock data (being replaced by graph projections)
+├── types/               # Shared TypeScript types (incl. graph.ts)
+├── hooks/               # usePersistence (boot-time store init)
+docs/
+├── PRD.md               # Future-state product requirements
+├── GAP_ANALYSIS.md      # Current vs target status
+└── ROADMAP.md           # Pillar-based build plan
+src-tauri/               # Rust: worktrees, commands, git diff
 ```
 
 ---
 
 ## Roadmap
 
-See the Roadmap view inside the app, or read the summary:
+See [docs/ROADMAP.md](docs/ROADMAP.md) for the full pillar-based plan, or the Roadmap view inside the app.
 
-| Version | Status | Focus |
+| Phase | Status | Focus |
 |---|---|---|
-| v0.x | Done | Foundation — runtime, sessions, workspaces |
-| v1.0 | Done | Orchestration — planning, delegation, reasoning |
-| v1.1 | Done | OSS Readiness — onboarding, docs, contributor experience |
-| v1.2 | Done | Repo credibility — license, CI, changelog, security |
-| v2.0 | Upcoming | Real PTY execution |
-| v2.1 | Upcoming | Tauri desktop runtime |
-| v2.2 | Upcoming | Real git worktrees |
-| v3.0 | Future | Remote runner support |
-| v3.1 | Future | MCP integration |
-| v3.2 | Future | Plugin ecosystem |
-| v4.0 | Future | Session replay engine |
-| v4.x | Future | Runtime APIs |
+| Foundation (v0.x–v2.1) | Done | UI shell, orchestration, desktop bridge, real worktrees |
+| Phase A — Foundation | Current | Persistence ✓ (Sprint 1); task graph engine, goal entry |
+| Phase B — Year 1 | Upcoming | Real agent loop, governance, merge approval |
+| Phase C — Year 2 | Future | Replay, memory, skills executor |
 
 ---
 
@@ -287,9 +284,11 @@ See the Roadmap view inside the app, or read the summary:
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, architecture walkthrough, and contribution workflow.
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for a detailed explanation of the runtime layers.
+See [ARCHITECTURE.md](ARCHITECTURE.md) for runtime layers and target architecture.
 
-See [CHANGELOG.md](CHANGELOG.md) for the version history.
+See [docs/PRD.md](docs/PRD.md) for the future-state product vision.
+
+See [CHANGELOG.md](CHANGELOG.md) for version history.
 
 ---
 
@@ -301,11 +300,11 @@ See [SECURITY.md](SECURITY.md) for the responsible disclosure policy and local e
 
 ## Design Principles
 
-- **Never break controlled autonomy.** Agents should not have arbitrary execution authority.
-- **Every decision is explainable.** If the runtime makes a choice, it logs the reason.
+- **The task graph is the source of truth.** Everything else is a projection.
+- **Agents are workers.** The user supervises outcomes, not conversations.
 - **Human override is always possible.** No orchestration decision is irreversible without human confirmation.
-- **The runtime does not surprise you.** Motion is calm. Information is readable. Density is purposeful.
-- **Honest about what is real.** The simulation is documented. Limitations are explicit. No fake demos.
+- **Every decision is explainable.** If the runtime makes a choice, it logs the reason.
+- **Honest about what is real.** The simulation is documented. Limitations are explicit.
 
 ---
 
