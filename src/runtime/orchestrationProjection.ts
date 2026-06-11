@@ -138,7 +138,11 @@ export function providerBindingsForSessions(
 
 export function graphToReviewSessions(nodes: GraphNode[]): ReviewSession[] {
   return nodes
-    .filter(n => n.type === 'task' && n.status === 'review')
+    .filter(n => {
+      if (n.type !== 'task' || n.status !== 'review') return false
+      const role = n.assignedRole ?? (n.metadata.role as string | undefined)
+      return role === 'reviewer'
+    })
     .map(node => {
       const meta = node.metadata as Record<string, unknown>
       const sessionId = sessionIdForNode(node)

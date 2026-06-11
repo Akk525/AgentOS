@@ -48,7 +48,7 @@ export const ROADMAP_PHASES: RoadmapPhase[] = [
       '✓ Planner agent: goal → epics → tasks with acceptance criteria — Sprint 5',
       '✓ Builder agent: graph node → worktree → implement → patch — Sprint 6',
       '✓ Reviewer agent + human approval gate — Sprint 6',
-      'Tester agent with failure → new task creation',
+      '✓ Tester agent with failure → new task creation — Sprint 7',
       'Governance modes (Manual / Assisted / Autonomous / Full Auto)',
       'Approval gates wired to merge flow',
       'Real cost accounting from provider token usage',

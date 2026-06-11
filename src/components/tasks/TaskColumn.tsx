@@ -82,7 +82,9 @@ export function TaskColumn({
                 onClick={onTaskClick}
                 canRun={
                   !!readySet?.has(task.id) &&
-                  task.assignedRole === 'builder' &&
+                  (task.assignedRole === 'builder' ||
+                    task.assignedRole === 'test-writer' ||
+                    task.assignedRole === 'reviewer') &&
                   (task.status === 'backlog' || task.status === 'claimed')
                 }
                 onRun={onRun}

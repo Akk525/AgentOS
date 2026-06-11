@@ -1,8 +1,10 @@
 import type { GraphNode } from '../types/graph'
 import { runBuilderForNode } from './agents/builderAgent'
 import { runReviewerForNode } from './agents/reviewerAgent'
+import { runTestWriterForNode } from './agents/testWriterAgent'
 import { persistReviewVerdict } from './execution/persistExecution'
 import { getAutoRunEnabled, getRepoPath, setAutoRunEnabled, setRepoPath } from './execution/executionConfig'
+import { getNodeRole } from './graphWorktree'
 import { taskGraphEngine } from './taskGraphEngine'
 import { orchestratorRuntime } from './orchestratorRuntime'
 
@@ -18,9 +20,24 @@ export interface ExecutionCoordinatorState {
 
 type CoordinatorListener = (state: ExecutionCoordinatorState) => void
 
-function isBuilderNode(node: GraphNode): boolean {
-  const role = node.assignedRole ?? (node.metadata.role as string | undefined)
-  return role === 'builder'
+const EXECUTABLE_ROLES = ['builder', 'test-writer', 'reviewer'] as const
+type ExecutableRole = (typeof EXECUTABLE_ROLES)[number]
+
+const ROLE_PRIORITY: ExecutableRole[] = ['builder', 'test-writer', 'reviewer']
+
+function isExecutableNode(node: GraphNode): boolean {
+  const role = getNodeRole(node)
+  return EXECUTABLE_ROLES.includes(role as ExecutableRole)
+}
+
+function pickNextReadyNode(nodes: GraphNode[], readyIds: Set<string>): GraphNode | undefined {
+  for (const role of ROLE_PRIORITY) {
+    const found = nodes.find(
+      n => readyIds.has(n.id) && n.type === 'task' && getNodeRole(n) === role,
+    )
+    if (found) return found
+  }
+  return undefined
 }
 
 class ExecutionCoordinator {
@@ -129,8 +146,8 @@ class ExecutionCoordinator {
     if (node.type !== 'task') {
       throw new Error('Only task nodes can be executed')
     }
-    if (!isBuilderNode(node)) {
-      throw new Error('Only builder tasks can be auto-executed in Sprint 6')
+    if (!isExecutableNode(node)) {
+      throw new Error(`Task role "${getNodeRole(node)}" cannot be executed`)
     }
 
     const repoPath = getRepoPath()
@@ -138,7 +155,7 @@ class ExecutionCoordinator {
       throw new Error('Mount a workspace before running tasks')
     }
 
-    await this.executeBuilder(node, project, repoPath)
+    await this.executeNode(node, project, repoPath)
   }
 
   private async tick(): Promise<void> {
@@ -154,36 +171,37 @@ class ExecutionCoordinator {
     if (!project) return
 
     const readyIds = new Set(graphState.readyNodeIds)
-    const next = graphState.nodes.find(
-      n => readyIds.has(n.id) && n.type === 'task' && isBuilderNode(n),
-    )
+    const next = pickNextReadyNode(graphState.nodes, readyIds)
     if (!next) return
 
-    await this.executeBuilder(next, project, repoPath)
+    await this.executeNode(next, project, repoPath)
   }
 
-  private async executeBuilder(
+  private async executeNode(
     node: GraphNode,
     project: NonNullable<ReturnType<typeof taskGraphEngine.getState>['activeProject']>,
     repoPath: string,
   ): Promise<void> {
+    const role = getNodeRole(node)
     this.patch({ running: true, activeNodeId: node.id, lastError: null })
 
     try {
       const meta = node.metadata as Record<string, unknown>
-      await runBuilderForNode(node, project, {
+      const opts = {
         repoPath,
         providerId: meta.provider as string | undefined,
         modelId: meta.model as string | undefined,
-      })
+      }
+
+      if (role === 'builder') {
+        await runBuilderForNode(node, project, opts)
+      } else if (role === 'test-writer') {
+        await runTestWriterForNode(node, project, { repoPath })
+      } else if (role === 'reviewer') {
+        await runReviewerForNode(node, project)
+      }
 
       await orchestratorRuntime.refreshFromStore()
-
-      const updated = taskGraphEngine.getState().nodes.find(n => n.id === node.id)
-      if (updated?.status === 'review') {
-        await runReviewerForNode(updated, project)
-        await orchestratorRuntime.refreshFromStore()
-      }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Execution failed'
       this.patch({ lastError: message })

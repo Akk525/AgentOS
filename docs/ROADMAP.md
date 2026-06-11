@@ -142,8 +142,29 @@ What shipped:
 **Behaviour today:**
 - Mount workspace → repo path stored; auto-run picks ready **builder** tasks
 - Desktop: builder creates worktree, LLM writes files, git diff captured to session
-- Node flow: running → review (reviewer LLM) → done/failed on human approve/reject
+- Node flow (Sprint 6): running → review (reviewer LLM) → done/failed on human approve/reject
 - Pause auto-run via status bar toggle; per-task Run still works when paused
+
+### Sprint 7 — Tester agent + failure loop (complete)
+
+**Shipped:** Test-writer execution, test output parsing, failure → builder fix task spawn, role-per-node pipeline.
+
+| What shipped | Where |
+|--------------|-------|
+| Test output parser (Jest/Vitest stdout) | `src/runtime/testOutputParser.ts` |
+| Upstream worktree resolution | `src/runtime/graphWorktree.ts` |
+| Test-writer agent (command runner) | `src/runtime/agents/testWriterAgent.ts` |
+| Tester persist + failure spawn | `persistExecution.ts`, `spawnBuilderFixTask.ts` |
+| Coordinator multi-role dispatch | `executionCoordinator.ts` (builder → test-writer → reviewer) |
+| Builder completes to `done` (not `review`) | `persistBuilderResult` |
+| Reviewer on reviewer nodes with upstream context | `reviewerAgent.ts`, `graphToReviewSessions()` |
+
+**Behaviour today:**
+- Full chain: plan → build → test → review → human approve
+- Test-writer runs allowlisted `npm test` in upstream builder worktree
+- Pass/fail, stdout, coverage hints on node metadata + `StoredSession.testResults`
+- Failed tests spawn a builder fix task; test-writer resets to pending until fix completes
+- Timeline emits `tests_passed` / `tests_failed` events
 
 | What shipped | Where |
 |--------------|-------|
@@ -180,7 +201,7 @@ None — this phase unblocks everything else.
 
 ## Phase B — Year 1 Success (~3 → 12 months)
 
-**Status:** Current (Sprint 6 — builder + reviewer loop shipped)
+**Status:** Current (Sprint 7 — tester agent + failure loop shipped)
 
 **Goal:** A developer can describe a project, supervise agents building it, review diffs, approve merges, and obtain a working application.
 

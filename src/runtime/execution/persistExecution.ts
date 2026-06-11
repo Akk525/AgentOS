@@ -1,9 +1,13 @@
 import type { GraphNode, Project } from '../../types/graph'
 import type { DiffFile, SessionData, TraceEvent } from '../../types'
+import type { GraphEdge } from '../../types/graph'
 import type { TokenUsage } from '../inference/types'
+import type { ParsedTestOutput } from '../testOutputParser'
+import { findUpstreamNodeByRole } from '../graphWorktree'
 import { getLocalStore } from '../store'
 import { updateSessionData } from '../sessionStore'
 import { taskGraphEngine } from '../taskGraphEngine'
+import { spawnBuilderFixTask } from './spawnBuilderFixTask'
 
 function uid(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
@@ -57,7 +61,7 @@ export async function persistBuilderResult(input: PersistBuilderResultInput): Pr
 
   await taskGraphEngine.transitionNode(
     input.node.id,
-    'review',
+    'done',
     {
       worktree: input.worktreePath,
       patchVersion: 1,
@@ -103,6 +107,155 @@ export interface PersistReviewVerdictInput {
   sessionId: string
   approved: boolean
   comments?: SessionData['events']
+}
+
+export interface PersistTesterResultInput {
+  node: GraphNode
+  project: Project
+  sessionId: string
+  parsed: ParsedTestOutput
+  terminalOutput: string[]
+  testCommand: string
+}
+
+export async function persistTesterResult(input: PersistTesterResultInput): Promise<SessionData> {
+  const { node, project, sessionId, parsed, terminalOutput, testCommand } = input
+  const testsRun = parsed.totalPassed + parsed.totalFailed + parsed.totalSkipped
+
+  const traceEvent: TraceEvent = {
+    id: uid('te'),
+    type: 'run_tests',
+    timestamp: new Date().toISOString(),
+    label: `${parsed.totalPassed} passed, ${parsed.totalFailed} failed`,
+    actor: 'agent',
+  }
+
+  const existing = await updateSessionData(project.id, node.id, {
+    events: [traceEvent],
+    testResults: parsed.testResults,
+    terminalOutput,
+    completionNote: {
+      summary: `Tests passed (${parsed.totalPassed}/${testsRun})`,
+      whatChanged: [],
+      whyItChanged: `Ran ${testCommand}`,
+      testsRun,
+      testsPassed: parsed.totalPassed,
+      testsFailed: parsed.totalFailed,
+      unresolvedRisks: [],
+      confidence: parsed.totalFailed === 0 ? 0.95 : 0.4,
+    },
+  })
+
+  await taskGraphEngine.transitionNode(
+    node.id,
+    'done',
+    {
+      testsPassed: parsed.totalPassed,
+      testsFailed: parsed.totalFailed,
+      testStatus: 'passed',
+      coverageHint: parsed.coverageHint,
+      completedAt: new Date().toISOString(),
+      testCommand,
+    },
+    { assignedSessionId: sessionId },
+  )
+
+  await getLocalStore().appendEvent({
+    projectId: project.id,
+    nodeId: node.id,
+    sessionId,
+    type: 'tests_passed',
+    message: `Tests passed: ${node.title} (${parsed.totalPassed}/${testsRun})`,
+    severity: 'success',
+    payload: {
+      agentName: 'Test Writer',
+      testsPassed: parsed.totalPassed,
+      testsFailed: parsed.totalFailed,
+      testsRun,
+      coverageHint: parsed.coverageHint,
+    },
+  })
+
+  return existing
+}
+
+export interface PersistTestFailureInput {
+  node: GraphNode
+  project: Project
+  sessionId: string
+  parsed: ParsedTestOutput
+  terminalOutput: string[]
+  testCommand: string
+  nodes: GraphNode[]
+  edges: GraphEdge[]
+}
+
+export async function persistTestFailure(input: PersistTestFailureInput): Promise<SessionData> {
+  const { node, project, sessionId, parsed, terminalOutput, testCommand, nodes, edges } = input
+  const testsRun = parsed.totalPassed + parsed.totalFailed + parsed.totalSkipped
+  const failureSummary =
+    parsed.testResults
+      .flatMap(t => t.failures?.map(f => `${t.file}: ${f.name}`) ?? [])
+      .slice(0, 5)
+      .join('; ') || `${parsed.totalFailed} test(s) failed`
+
+  const traceEvent: TraceEvent = {
+    id: uid('te'),
+    type: 'run_tests',
+    timestamp: new Date().toISOString(),
+    label: failureSummary,
+    actor: 'agent',
+  }
+
+  const existing = await updateSessionData(project.id, node.id, {
+    events: [traceEvent],
+    testResults: parsed.testResults,
+    terminalOutput,
+    completionNote: {
+      summary: `Tests failed (${parsed.totalFailed}/${testsRun})`,
+      whatChanged: [],
+      whyItChanged: `Ran ${testCommand}`,
+      testsRun,
+      testsPassed: parsed.totalPassed,
+      testsFailed: parsed.totalFailed,
+      unresolvedRisks: [failureSummary],
+      confidence: 0.2,
+    },
+  })
+
+  await taskGraphEngine.transitionNode(node.id, 'failed', {
+    testsPassed: parsed.totalPassed,
+    testsFailed: parsed.totalFailed,
+    testStatus: 'failed',
+    testFailureSummary: failureSummary,
+    completedAt: new Date().toISOString(),
+    testCommand,
+  })
+
+  await getLocalStore().appendEvent({
+    projectId: project.id,
+    nodeId: node.id,
+    sessionId,
+    type: 'tests_failed',
+    message: `Tests failed: ${node.title} — ${failureSummary}`,
+    severity: 'error',
+    payload: {
+      agentName: 'Test Writer',
+      testsPassed: parsed.totalPassed,
+      testsFailed: parsed.totalFailed,
+      testsRun,
+    },
+  })
+
+  const upstreamBuilder = findUpstreamNodeByRole(node, nodes, edges, 'builder')
+  await spawnBuilderFixTask({
+    project,
+    failedTestNode: node,
+    failureSummary,
+    upstreamBuilder,
+  })
+
+  return existing
 }
 
 export async function persistReviewVerdict(input: PersistReviewVerdictInput): Promise<void> {

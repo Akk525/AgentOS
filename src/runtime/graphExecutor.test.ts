@@ -47,7 +47,7 @@ const nodes: GraphNode[] = [
     description: '',
     status: 'pending',
     acceptanceCriteria: [],
-    assignedRole: 'tester',
+    assignedRole: 'test-writer',
     assignedSessionId: null,
     branch: null,
     metadata: {},

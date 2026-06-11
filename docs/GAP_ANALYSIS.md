@@ -12,7 +12,7 @@ Current implementation status mapped against the [future-state PRD](PRD.md). Thi
 |---|--------|--------|----------|
 | 1 | Project Planning | ⚠️ Partial | UI + types + mock plan |
 | 2 | Task Graph Engine | ⚠️ Partial | TaskGraphEngine + executor; UI partially wired |
-| 3 | Agent Organization | ⚠️ Partial | Builder/reviewer loop (Sprint 6); tester deferred |
+| 3 | Agent Organization | ⚠️ Partial | Builder/test-writer/reviewer loop (Sprint 6–7); governance deferred |
 | 4 | Worktree Runtime | ⚠️ Partial | Real create (desktop); incomplete lifecycle |
 | 5 | Execution Timeline | ⚠️ Partial | Durable store + hydrate; sessions still simulated |
 | 6 | Replay Engine | ❌ Missing | UI placeholders only |
@@ -21,7 +21,7 @@ Current implementation status mapped against the [future-state PRD](PRD.md). Thi
 | 9 | Multi-Model Runtime | ⚠️ Partial | Inference + planner (S5); builder/reviewer execution |
 | 10 | Skills Framework | ⚠️ Partial | Static catalog |
 | 11 | Persistent Agent Memory | ❌ Missing | — |
-| 12 | Testing & Verification | ⚠️ Partial | UI + allowlisted test cmds; no project tests |
+| 12 | Testing & Verification | ⚠️ Partial | Test-writer agent runs tests on graph (Sprint 7); coverage gates deferred |
 | 13 | Cost Accounting | ⚠️ Partial | Mock counters in UI |
 | 14 | Local First | ⚠️ Partial | Tauri-first + SQLite store (Sprint 1); orchestrator not hydrated |
 | 15 | Agent Observatory | ⚠️ Mostly exists | Comprehensive shell; LogsView fixed; storage diagnostics added |
@@ -89,8 +89,8 @@ flowchart TB
 | | |
 |---|---|
 | **Status** | ⚠️ Partial |
-| **Existing assets** | `Agent` type with roles; [`AgentsView.tsx`](../src/components/agents/AgentsView.tsx); [`mockAgents.ts`](../src/data/mockAgents.ts); [`SpawnSessionModal.tsx`](../src/components/sessions/SpawnSessionModal.tsx) |
-| **Gap** | Agents presented as user-facing personas; no registry service; no real spawn/kill/scale; no automatic role assignment from graph |
+| **Existing assets** | Builder, test-writer, reviewer agents + execution coordinator (Sprint 6–7); role assignment from planner graph; [`testWriterAgent.ts`](../src/runtime/agents/testWriterAgent.ts) |
+| **Gap** | No agent registry service; no spawn/kill/scale; governance modes deferred (Sprint 8) |
 | **Priority** | High — needed for real agent loop |
 
 ---
@@ -188,9 +188,9 @@ flowchart TB
 | | |
 |---|---|
 | **Status** | ⚠️ Partial |
-| **Existing assets** | Test UI in session/review; `cmdRerunTests` (simulated); real `npm test` via Rust allowlist on desktop |
-| **Gap** | No AgentOS project tests; failure → task creation not wired; coverage/security scans missing |
-| **Priority** | Medium — Year 1 needs real test results on graph nodes |
+| **Existing assets** | Test UI in session/review; test-writer agent runs allowlisted tests in builder worktree (Sprint 7); `tests_passed`/`tests_failed` timeline events; failure spawns builder fix task |
+| **Gap** | Coverage/security scan gates; AgentOS repo test suite still thin |
+| **Priority** | Medium — coverage gates in Year 1 tail |
 
 ---
 
@@ -268,7 +268,7 @@ See [ROADMAP.md](ROADMAP.md) for the full phased plan. Critical path:
 3. ~~**Goal entry** (Pillar 1) — natural language → create project + plan~~ **Done (Sprint 3)**
 4. ~~**Observatory wiring** (Pillar 15) — Dashboard, Sessions, orchestrator on graph~~ **Done (Sprint 3b–4)**
 5. **Multi-Model Runtime** (Pillar 9) — streaming inference ← **partial (Sprint 5)**
-6. **Agent Organization** (Pillar 3) — builder/reviewer loop ← **partial (Sprint 6)**
-7. **Governance + Gates** (Pillars 7, 8) — merge approval
+6. **Agent Organization** (Pillar 3) — builder/test-writer/reviewer loop ← **partial (Sprint 6–7)**
+7. **Governance + Gates** (Pillars 7, 8) — merge approval ← **Sprint 8**
 
 Year 2: Replay (6), Memory (11), Skills executor (10).

@@ -76,7 +76,7 @@ class WebBridge implements DesktopBridge {
     }
   }
 
-  async runWorkspaceCommand(_worktreePath: string, command: string): Promise<CommandResult> {
+  async runWorkspaceCommand(worktreePath: string, command: string): Promise<CommandResult> {
     await new Promise(r => setTimeout(r, 600 + Math.random() * 1200))
 
     if (command.startsWith('git status')) {
@@ -112,7 +112,32 @@ class WebBridge implements DesktopBridge {
       }
     }
 
-    if (command.startsWith('npm test') || command.startsWith('npm run test')) {
+    if (command.startsWith('npm test') || command.startsWith('npm run test') ||
+        command.startsWith('pnpm test') || command.startsWith('yarn test')) {
+      const simulateFail =
+        worktreePath.includes('fail') ||
+        command.includes('--fail') ||
+        command.includes('simulate-fail')
+
+      if (simulateFail) {
+        return {
+          exitCode: 1,
+          stdout: [
+            '',
+            'FAIL src/auth/session.test.ts',
+            '  ✗ rejects invalid token (5ms)',
+            '',
+            'Test Suites: 1 failed, 1 total',
+            'Tests:       1 failed, 2 passed, 3 total',
+            '',
+          ].join('\n'),
+          stderr: '',
+          durationMs: 890,
+          blocked: false,
+          blockReason: null,
+        }
+      }
+
       return {
         exitCode: 0,
         stdout: [
