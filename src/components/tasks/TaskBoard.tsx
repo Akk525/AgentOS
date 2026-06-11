@@ -2,6 +2,8 @@ import { Filter, SortAsc } from 'lucide-react'
 import { TaskColumn } from './TaskColumn'
 import { GlowButton } from '../shared/GlowButton'
 import { useGraphTasks } from '../../hooks/useGraphTasks'
+import { useTaskGraph } from '../../context/TaskGraphContext'
+import { useExecution } from '../../context/ExecutionContext'
 import type { Task, TaskStatus } from '../../types'
 
 const columns: TaskStatus[] = ['backlog', 'claimed', 'running', 'review', 'needs_changes', 'done', 'failed']
@@ -12,6 +14,18 @@ interface TaskBoardProps {
 
 export function TaskBoard({ onTaskClick }: TaskBoardProps) {
   const { tasks } = useGraphTasks()
+  const { readyNodeIds } = useTaskGraph()
+  const { runNode, running: coordinatorRunning, pausedReason } = useExecution()
+
+  const readySet = new Set(readyNodeIds)
+
+  async function handleRun(task: Task) {
+    try {
+      await runNode(task.id)
+    } catch (err) {
+      console.error(err)
+    }
+  }
 
   const tasksByStatus = (status: TaskStatus) => tasks.filter(t => t.status === status)
 
@@ -23,6 +37,11 @@ export function TaskBoard({ onTaskClick }: TaskBoardProps) {
           <span className="text-sm text-slate-400">
             <span className="text-white font-semibold">{tasks.length}</span> tasks
           </span>
+          {pausedReason === 'no_workspace' && (
+            <span className="text-[10px] font-mono text-amber-400">
+              Mount a workspace to run builder tasks
+            </span>
+          )}
           <div className="h-4 w-px bg-white/[0.08]" />
           <div className="flex items-center gap-2">
             {(['running', 'review', 'needs_changes'] as TaskStatus[]).map(s => {
@@ -55,6 +74,9 @@ export function TaskBoard({ onTaskClick }: TaskBoardProps) {
               status={status}
               tasks={tasksByStatus(status)}
               onTaskClick={onTaskClick}
+              readySet={readySet}
+              onRun={handleRun}
+              coordinatorRunning={coordinatorRunning}
             />
           ))}
         </div>

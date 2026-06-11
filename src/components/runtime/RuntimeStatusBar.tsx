@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Activity, Cpu, Layers, AlertTriangle, CheckCircle2, ChevronRight, Wifi, WifiOff, RefreshCw } from 'lucide-react'
 import { useRuntime } from '../../context/RuntimeContext'
+import { useExecution } from '../../context/ExecutionContext'
 import { useGraphTasks } from '../../hooks/useGraphTasks'
 import { getTaskAgentDisplay } from '../../lib/taskAgent'
 import type { SessionMode } from '../../types'
@@ -44,6 +45,7 @@ const connectionConfig: Record<RuntimeConnectionStatus, { icon: React.ReactNode;
 
 export function RuntimeStatusBar() {
   const { sessionMode, runtimePhase, activeTaskId, metrics, connectionStatus } = useRuntime()
+  const { autoRun, setAutoRun, running: coordinatorRunning, pausedReason, activeNodeId } = useExecution()
   const [tokPerSec, setTokPerSec] = useState(metrics.tokensPerSec)
   const [tick, setTick] = useState(0)
 
@@ -155,6 +157,27 @@ export function RuntimeStatusBar() {
 
       {/* Right: global status */}
       <div className="flex items-center gap-3 flex-shrink-0">
+        <button
+          type="button"
+          onClick={() => setAutoRun(!autoRun)}
+          className={`text-[10px] font-mono px-2 py-0.5 rounded-md border transition-colors ${
+            autoRun
+              ? 'border-cyan-500/30 text-cyan-300 bg-cyan-500/10'
+              : 'border-white/[0.08] text-slate-500 bg-white/[0.02]'
+          }`}
+          title={pausedReason === 'no_workspace' ? 'Mount a workspace first' : undefined}
+        >
+          auto-run {autoRun ? 'on' : 'off'}
+        </button>
+        {coordinatorRunning && (
+          <span className="text-[10px] font-mono text-cyan-400">
+            executing{activeNodeId ? ` · ${activeNodeId.slice(0, 12)}` : ''}
+          </span>
+        )}
+        {pausedReason === 'no_workspace' && (
+          <span className="text-[10px] font-mono text-amber-500/80">no workspace</span>
+        )}
+
         {/* Running */}
         <div className="flex items-center gap-1.5 text-[10px] font-mono text-slate-600">
           <div className="w-1.5 h-1.5 rounded-full bg-cyan-500/60" />

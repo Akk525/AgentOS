@@ -17,6 +17,9 @@ interface ReviewPanelProps {
   updatedNote?: AgentCompletionNote | null
   reviewRefreshedAt?: string | null
   testRunState?: TestRunState
+  onApprove?: () => void
+  onReject?: () => void
+  onRequestChanges?: (note: string) => void
 }
 
 type ApprovalState = 'idle' | 'approved' | 'rejected' | 'changes'
@@ -27,6 +30,8 @@ export function ReviewPanel({
   updatedNote,
   reviewRefreshedAt,
   testRunState = 'idle',
+  onApprove,
+  onReject,
 }: ReviewPanelProps) {
   const [selectedFile, setSelectedFile] = useState(session.diff[0]?.path ?? '')
   const [changesNote, setChangesNote] = useState('')
@@ -337,7 +342,10 @@ export function ReviewPanel({
                 variant="danger"
                 size="sm"
                 icon={<XCircle size={13} />}
-                onClick={() => setApproval('rejected')}
+                onClick={() => {
+                  setApproval('rejected')
+                  onReject?.()
+                }}
               >
                 Reject
               </GlowButton>
@@ -353,7 +361,10 @@ export function ReviewPanel({
                 variant="primary"
                 size="sm"
                 icon={<CheckCircle size={13} />}
-                onClick={() => setApproval('approved')}
+                onClick={() => {
+                  setApproval('approved')
+                  onApprove?.()
+                }}
               >
                 Approve & Merge
               </GlowButton>

@@ -16,6 +16,7 @@ import { InjectModal } from '../runtime/InjectModal'
 import { PermissionsPanel } from './PermissionsPanel'
 import { SessionArchivePanel } from './SessionArchivePanel'
 import { useRuntime } from '../../context/RuntimeContext'
+import { useExecution } from '../../context/ExecutionContext'
 import { useGraphTasks } from '../../hooks/useGraphTasks'
 import { useGraphSession } from '../../hooks/useGraphSession'
 import { getTaskAgentDisplay } from '../../lib/taskAgent'
@@ -33,6 +34,7 @@ export function AgentSession({ task: propTask, onBack }: AgentSessionProps) {
   const task = propTask ?? tasks.find(t => t.status === 'running') ?? tasks[0]
   const agent = task ? getTaskAgentDisplay(task) : null
   const { session, loading: sessionLoading, fromStore } = useGraphSession(task?.id)
+  const { approveReview, rejectReview } = useExecution()
   const [activeTab, setActiveTab] = useState<Tab>(task?.status === 'review' ? 'review' : 'terminal')
   const [injectOpen, setInjectOpen] = useState(false)
 
@@ -267,6 +269,8 @@ export function AgentSession({ task: propTask, onBack }: AgentSessionProps) {
                     updatedNote={updatedCompletionNote}
                     reviewRefreshedAt={reviewRefreshedAt}
                     testRunState={testRunState}
+                    onApprove={() => void approveReview(task.id)}
+                    onReject={() => void rejectReview(task.id)}
                   />
                 )}
                 {activeTab === 'diff' && <RawDiffPanel />}

@@ -24,9 +24,19 @@ interface TaskColumnProps {
   status: TaskStatus
   tasks: Task[]
   onTaskClick: (task: Task) => void
+  readySet?: Set<string>
+  onRun?: (task: Task) => void
+  coordinatorRunning?: boolean
 }
 
-export function TaskColumn({ status, tasks, onTaskClick }: TaskColumnProps) {
+export function TaskColumn({
+  status,
+  tasks,
+  onTaskClick,
+  readySet,
+  onRun,
+  coordinatorRunning,
+}: TaskColumnProps) {
   const config = columnConfig[status]
 
   return (
@@ -66,7 +76,18 @@ export function TaskColumn({ status, tasks, onTaskClick }: TaskColumnProps) {
             className="space-y-2.5"
           >
             {tasks.map(task => (
-              <TaskCard key={task.id} task={task} onClick={onTaskClick} />
+              <TaskCard
+                key={task.id}
+                task={task}
+                onClick={onTaskClick}
+                canRun={
+                  !!readySet?.has(task.id) &&
+                  task.assignedRole === 'builder' &&
+                  (task.status === 'backlog' || task.status === 'claimed')
+                }
+                onRun={onRun}
+                isCoordinatorRunning={coordinatorRunning}
+              />
             ))}
           </motion.div>
         )}

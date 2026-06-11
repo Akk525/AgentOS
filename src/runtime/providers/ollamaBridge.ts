@@ -1,12 +1,20 @@
-// Real Ollama bridge — makes an actual HTTP call to localhost:11434.
-// Read-only; only fetches available models. Safe to call unconditionally.
+// Real Ollama bridge — health checks and chat completions via localhost:11434.
 
 import type { ProviderBridge, ProviderHealth } from './providerBridge'
+import type { CompletionRequest, CompletionResult } from '../inference/types'
+import { InferenceError } from '../inference/types'
 
 const OLLAMA_BASE = 'http://localhost:11434'
+const INFERENCE_TIMEOUT_MS = 120_000
 
 interface OllamaTagsResponse {
   models: { name: string; size: number; modified_at: string }[]
+}
+
+interface OllamaChatResponse {
+  message?: { content?: string }
+  prompt_eval_count?: number
+  eval_count?: number
 }
 
 export class OllamaBridge implements ProviderBridge {
@@ -63,6 +71,73 @@ export class OllamaBridge implements ProviderBridge {
       return data.models?.map(m => m.name) ?? []
     } catch {
       return []
+    }
+  }
+
+  async complete(request: CompletionRequest): Promise<CompletionResult> {
+    const health = await this.ping()
+    if (health.state === 'unreachable') {
+      throw new InferenceError('unconfigured', 'Ollama is not running. Start Ollama locally (ollama serve).')
+    }
+
+    const messages = request.messages.map(m => ({
+      role: m.role === 'system' ? 'system' : m.role,
+      content: m.content,
+    }))
+
+    const body: Record<string, unknown> = {
+      model: request.model,
+      messages,
+      stream: false,
+      options: {
+        temperature: request.temperature ?? 0.2,
+      },
+    }
+    if (request.jsonMode) {
+      body.format = 'json'
+    }
+
+    try {
+      const res = await fetch(`${OLLAMA_BASE}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(INFERENCE_TIMEOUT_MS),
+      })
+
+      if (!res.ok) {
+        const detail = await res.text().catch(() => '')
+        throw new InferenceError(
+          'inference_failed',
+          `Ollama request failed (HTTP ${res.status})${detail ? `: ${detail.slice(0, 200)}` : ''}`,
+        )
+      }
+
+      const data: OllamaChatResponse = await res.json()
+      const content = data.message?.content?.trim() ?? ''
+      if (!content) {
+        throw new InferenceError('inference_failed', 'Ollama returned an empty response')
+      }
+
+      const promptTokens = data.prompt_eval_count ?? 0
+      const completionTokens = data.eval_count ?? 0
+
+      return {
+        content,
+        model: request.model,
+        providerId: this.providerId,
+        usage: {
+          promptTokens,
+          completionTokens,
+          totalTokens: promptTokens + completionTokens,
+        },
+      }
+    } catch (err) {
+      if (err instanceof InferenceError) throw err
+      throw new InferenceError(
+        'inference_failed',
+        err instanceof Error ? err.message : 'Ollama inference failed',
+      )
     }
   }
 }

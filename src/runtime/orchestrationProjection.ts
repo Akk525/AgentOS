@@ -1,4 +1,4 @@
-import type { ActiveSession, OrchestratedSessionStatus, SessionDependency } from '../types'
+import type { ActiveSession, OrchestratedSessionStatus, ReviewSession, SessionDependency } from '../types'
 import type { GraphEdge, GraphNode, Project } from '../types/graph'
 
 const DEFAULT_WORKSPACE = 'local'
@@ -134,4 +134,22 @@ export function providerBindingsForSessions(
     session.id,
     session.providerId === 'openai' ? 'openai' : index % 3 === 2 ? 'openai' : 'anthropic',
   ])
+}
+
+export function graphToReviewSessions(nodes: GraphNode[]): ReviewSession[] {
+  return nodes
+    .filter(n => n.type === 'task' && n.status === 'review')
+    .map(node => {
+      const meta = node.metadata as Record<string, unknown>
+      const sessionId = sessionIdForNode(node)
+      return {
+        id: `review-${node.id}`,
+        patchSessionId: sessionId,
+        reviewerAgentId: 'agent-reviewer',
+        reviewerName: (meta.reviewerName as string) ?? 'Reviewer',
+        status: 'running' as const,
+        comments: [],
+        assignedAt: (meta.startedAt as string) ?? node.createdAt,
+      }
+    })
 }

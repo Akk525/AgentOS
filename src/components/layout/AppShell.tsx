@@ -22,6 +22,7 @@ import { SpawnSessionModal } from '../sessions/SpawnSessionModal'
 import { OrchestrationView } from '../orchestration/OrchestrationView'
 import { OrchestratorProvider } from '../../context/OrchestratorContext'
 import { TaskGraphProvider } from '../../context/TaskGraphContext'
+import { ExecutionProvider } from '../../context/ExecutionContext'
 import { RoadmapView } from '../roadmap/RoadmapView'
 import { OnboardingOverlay } from '../onboarding/OnboardingOverlay'
 import { GoalEntryGate } from '../goal/GoalEntryGate'
@@ -139,6 +140,7 @@ export function AppShell({
   return (
     <RuntimeProvider>
       <TaskGraphProvider>
+      <ExecutionProvider>
       <OrchestratorProvider>
       <div className="flex h-full w-full overflow-hidden">
         {/* Background */}
@@ -213,6 +215,7 @@ export function AppShell({
         />
       </div>
       </OrchestratorProvider>
+      </ExecutionProvider>
       </TaskGraphProvider>
     </RuntimeProvider>
   )

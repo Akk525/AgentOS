@@ -108,6 +108,43 @@ What shipped:
 
 **Shipped:** Orchestrator sessions from graph, session shell writes, derived dashboard metrics, New Project CTA.
 
+### Sprint 5 — Inference layer + real planner (complete)
+
+**Shipped:** LLM-backed planner; goal text → intelligent epics/tasks persisted to graph.
+
+| What shipped | Where |
+|--------------|-------|
+| `ProviderBridge.complete()` inference API | `src/runtime/providers/providerBridge.ts`, `ollamaBridge.ts`, `openaiCompatibleBridge.ts` |
+| Inference runtime + role model routing | `src/runtime/inference/inferenceRuntime.ts`, `modelRouting.ts` |
+| Planner agent (prompt → JSON → graph) | `src/runtime/agents/plannerAgent.ts`, `planner/planSchema.ts`, `planner/persistPlan.ts` |
+| Goal entry provider/model picker | `src/components/goal/GoalEntryOverlay.tsx` |
+| Mock planner retained for tests (`mode: 'mock'`) | `src/runtime/mockPlanner.ts` |
+
+**Behaviour today:**
+- User describes project, picks provider (Ollama / Anthropic / OpenAI) and model
+- Lyra planner calls LLM with structured JSON output; validates before any graph writes
+- Persists epic + tasks with acceptance criteria, dependencies, token usage on `plan_created` event
+- Builder/reviewer execution loop deferred to Sprint 6
+
+### Sprint 6 — Builder + reviewer execution loop (complete)
+
+**Shipped:** Auto/manual execution coordinator, real worktree builder, reviewer LLM + human approval gate.
+
+| What shipped | Where |
+|--------------|-------|
+| `write_workspace_files` Tauri command | `src-tauri/src/commands.rs`, `desktopBridge` |
+| Execution coordinator (auto-run + manual Run) | `src/runtime/executionCoordinator.ts`, `ExecutionContext.tsx` |
+| Builder agent (LLM → write → diff → session) | `src/runtime/agents/builderAgent.ts`, `builderSchema.ts` |
+| Reviewer agent + human ReviewPanel wiring | `src/runtime/agents/reviewerAgent.ts`, `ReviewPanel.tsx` |
+| Session/graph writes | `sessionStore.updateSessionData`, `taskGraphEngine.transitionNode` metadata merge |
+| Review sessions projection | `graphToReviewSessions()` in `orchestrationProjection.ts` |
+
+**Behaviour today:**
+- Mount workspace → repo path stored; auto-run picks ready **builder** tasks
+- Desktop: builder creates worktree, LLM writes files, git diff captured to session
+- Node flow: running → review (reviewer LLM) → done/failed on human approve/reject
+- Pause auto-run via status bar toggle; per-task Run still works when paused
+
 | What shipped | Where |
 |--------------|-------|
 | `graphToActiveSessions()` projection | `src/runtime/orchestrationProjection.ts` |
@@ -143,7 +180,7 @@ None — this phase unblocks everything else.
 
 ## Phase B — Year 1 Success (~3 → 12 months)
 
-**Status:** Current
+**Status:** Current (Sprint 6 — builder + reviewer loop shipped)
 
 **Goal:** A developer can describe a project, supervise agents building it, review diffs, approve merges, and obtain a working application.
 
@@ -268,7 +305,7 @@ These may be revisited if community demand emerges, but they are not on the crit
 flowchart LR
   A1[Phase A: Persistence] --> A2[Phase A: Task Graph]
   A2 --> A3[Phase A: Goal Entry]
-  A3 --> B1[Phase B: Inference]
+  A3 --> B1[Phase B: Inference + Planner]
   B1 --> B2[Phase B: Agent Loop]
   B2 --> B3[Phase B: Governance]
   B3 --> B4[Phase B: Year 1 Complete]

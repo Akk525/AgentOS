@@ -11,6 +11,9 @@ import type { Task, RuntimePhase } from '../../types'
 interface TaskCardProps {
   task: Task
   onClick: (task: Task) => void
+  canRun?: boolean
+  onRun?: (task: Task) => void
+  isCoordinatorRunning?: boolean
 }
 
 const priorityAccent: Record<string, string> = {
@@ -59,7 +62,7 @@ const phaseBarColor: Partial<Record<RuntimePhase, string>> = {
   ready_for_review:   'from-emerald-700/60 to-emerald-400/70',
 }
 
-export function TaskCard({ task, onClick }: TaskCardProps) {
+export function TaskCard({ task, onClick, canRun = false, onRun, isCoordinatorRunning = false }: TaskCardProps) {
   const agent = getTaskAgentDisplay(task)
   const isRunning = task.status === 'running'
   const priority = task.priority ?? 'medium'
@@ -216,19 +219,34 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
           </div>
         )}
 
-        {/* Tags */}
-        {task.tags && task.tags.length > 0 && !isRunning && (
-          <div className="flex items-center gap-1 mt-2.5 flex-wrap">
-            {task.tags.slice(0, 3).map(tag => (
-              <span
-                key={tag}
-                className="text-[9px] font-mono px-1.5 py-0.5 rounded-md bg-white/[0.03] text-slate-700 border border-white/[0.04]"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-        )}
+        {/* Tags + run */}
+        <div className="flex items-center justify-between mt-2.5 gap-2">
+          {task.tags && task.tags.length > 0 && !isRunning ? (
+            <div className="flex items-center gap-1 flex-wrap flex-1">
+              {task.tags.slice(0, 3).map(tag => (
+                <span
+                  key={tag}
+                  className="text-[9px] font-mono px-1.5 py-0.5 rounded-md bg-white/[0.03] text-slate-700 border border-white/[0.04]"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          ) : <div className="flex-1" />}
+          {canRun && onRun && (
+            <button
+              type="button"
+              onClick={e => {
+                e.stopPropagation()
+                onRun(task)
+              }}
+              disabled={isCoordinatorRunning}
+              className="text-[9px] font-mono px-2 py-1 rounded-md bg-cyan-500/15 text-cyan-300 border border-cyan-500/25 hover:bg-cyan-500/25 disabled:opacity-40"
+            >
+              Run
+            </button>
+          )}
+        </div>
       </div>
     </motion.div>
   )

@@ -3,6 +3,8 @@ import { interventionTerminalLines, updatedCompletionNote } from './runtimeMockD
 import { runtimeDaemon } from './runtimeDaemon'
 import { providerRegistry } from './providers/providerRegistry'
 import { getDesktopBridge, getEnvironment } from './desktop/desktopBridge'
+import { executionCoordinator } from './executionCoordinator'
+import { setRepoPath } from './execution/executionConfig'
 import type { PermissionEscalation, LogLevel, LogSource, SessionLaunchConfig, LiveWorktree, PatchLifecycle } from '../types'
 
 // ── Command risk classification ───────────────────────────────────────────────
@@ -249,6 +251,9 @@ class RuntimeEngine {
       this.emit('WORKSPACE_MOUNTED', { workspaceId, localPath, mountState: 'mounted' })
       this.emitNotification('success', 'Workspace mounted', `${localPath.split('/').pop()} is ready.`)
       this.emitLog('info', 'workspace', `Mounted ${localPath} — filesystem ✓ terminal ✓`)
+      this.activeRepoPath = localPath
+      setRepoPath(localPath)
+      executionCoordinator.notifyRepoPath(localPath)
     }, 1800)
   }
 

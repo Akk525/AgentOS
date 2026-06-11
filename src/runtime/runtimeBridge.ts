@@ -1,6 +1,6 @@
 // RuntimeBridge sits between the UI and the daemon/engine.
-// In production this becomes the IPC layer (Tauri invoke, WebSocket, etc.).
-// Currently it wires runtimeDaemon + runtimeEngine into a unified surface.
+import { setRepoPath } from './execution/executionConfig'
+import { executionCoordinator } from './executionCoordinator'
 
 import type { WorkspaceMountStatus, MountState } from '../types'
 
@@ -44,6 +44,8 @@ class RuntimeBridge {
           sandboxStatus: 'healthy',
           attachedProviderId: providerId,
         })
+        setRepoPath(localPath)
+        executionCoordinator.notifyRepoPath(localPath)
         resolve()
       }, 1800)
     })

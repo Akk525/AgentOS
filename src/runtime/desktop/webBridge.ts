@@ -4,6 +4,7 @@
 import type {
   DesktopBridge, DirectoryPickResult, RepoInfo, PlatformInfo,
   WorktreeCreateResult, CommandResult, GitDiffResult,
+  WorkspaceFileWrite, WriteWorkspaceFilesResult,
 } from './desktopTypes'
 
 const KNOWN_REPOS: Record<string, Partial<RepoInfo>> = {
@@ -153,6 +154,18 @@ class WebBridge implements DesktopBridge {
       changedFiles: ['src/auth/session.ts'],
       insertions: 3,
       deletions: 2,
+    }
+  }
+
+  async writeWorkspaceFiles(
+    _worktreePath: string,
+    files: WorkspaceFileWrite[],
+  ): Promise<WriteWorkspaceFilesResult> {
+    await new Promise(r => setTimeout(r, 200))
+    return {
+      success: true,
+      filesWritten: files.length,
+      error: null,
     }
   }
 }

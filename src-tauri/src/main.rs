@@ -13,6 +13,7 @@ fn main() {
             commands::create_worktree,
             commands::run_workspace_command,
             commands::get_git_diff,
+            commands::write_workspace_files,
             store_commands::store_init,
             store_commands::store_get_status,
             store_commands::store_list_projects,

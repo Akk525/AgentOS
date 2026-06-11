@@ -45,6 +45,17 @@ export interface GitDiffResult {
   deletions: number
 }
 
+export interface WorkspaceFileWrite {
+  path: string
+  content: string
+}
+
+export interface WriteWorkspaceFilesResult {
+  success: boolean
+  filesWritten: number
+  error: string | null
+}
+
 export interface DesktopBridge {
   environment: DesktopEnvironment
   pickDirectory(): Promise<DirectoryPickResult>
@@ -53,4 +64,5 @@ export interface DesktopBridge {
   createWorktree(repoPath: string, branchName: string, worktreeName: string): Promise<WorktreeCreateResult>
   runWorkspaceCommand(worktreePath: string, command: string): Promise<CommandResult>
   getGitDiff(worktreePath: string): Promise<GitDiffResult>
+  writeWorkspaceFiles(worktreePath: string, files: WorkspaceFileWrite[]): Promise<WriteWorkspaceFilesResult>
 }

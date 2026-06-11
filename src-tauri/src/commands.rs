@@ -3,7 +3,8 @@
 // Safety boundaries are enforced here, not in the UI layer.
 
 use serde::{Deserialize, Serialize};
-use std::path::Path;
+use std::fs;
+use std::path::{Component, Path, PathBuf};
 use std::process::Command;
 use std::time::Instant;
 
@@ -58,6 +59,24 @@ pub struct GitDiffResult {
     pub insertions: u32,
     pub deletions: u32,
 }
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkspaceFileWrite {
+    pub path: String,
+    pub content: String,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WriteWorkspaceFilesResult {
+    pub success: bool,
+    pub files_written: u32,
+    pub error: Option<String>,
+}
+
+const MAX_FILE_BYTES: usize = 512 * 1024;
+const MAX_FILES_PER_CALL: usize = 20;
 
 // ── Allowlist ─────────────────────────────────────────────────────────────────
 
@@ -340,6 +359,130 @@ pub fn get_git_diff(worktree_path: String) -> GitDiffResult {
     }
 
     GitDiffResult { raw_diff, changed_files, insertions, deletions }
+}
+
+fn safe_join_worktree(worktree_path: &Path, rel_path: &str) -> Result<PathBuf, String> {
+    let rel = rel_path.trim();
+    if rel.is_empty() {
+        return Err("File path cannot be empty".to_string());
+    }
+    if rel.starts_with('/') || rel.starts_with('\\') {
+        return Err(format!("Absolute paths are not allowed: {}", rel));
+    }
+
+    let rel_path_obj = Path::new(rel);
+    for component in rel_path_obj.components() {
+        match component {
+            Component::ParentDir => {
+                return Err(format!("Parent directory segments are not allowed: {}", rel));
+            }
+            Component::RootDir | Component::Prefix(_) => {
+                return Err(format!("Absolute paths are not allowed: {}", rel));
+            }
+            _ => {}
+        }
+    }
+
+    let joined = worktree_path.join(rel_path_obj);
+    let worktree_canonical = worktree_path
+        .canonicalize()
+        .map_err(|e| format!("Invalid worktree path: {}", e))?;
+
+    if let Some(parent) = joined.parent() {
+        if let Ok(parent_canonical) = parent.canonicalize() {
+            if !parent_canonical.starts_with(&worktree_canonical) {
+                return Err(format!("Path escapes worktree: {}", rel));
+            }
+        } else if !parent.starts_with(worktree_path) {
+            return Err(format!("Path escapes worktree: {}", rel));
+        }
+    }
+
+    Ok(joined)
+}
+
+#[tauri::command]
+pub fn write_workspace_files(
+    worktree_path: String,
+    files: Vec<WorkspaceFileWrite>,
+) -> WriteWorkspaceFilesResult {
+    if files.is_empty() {
+        return WriteWorkspaceFilesResult {
+            success: false,
+            files_written: 0,
+            error: Some("No files provided".to_string()),
+        };
+    }
+    if files.len() > MAX_FILES_PER_CALL {
+        return WriteWorkspaceFilesResult {
+            success: false,
+            files_written: 0,
+            error: Some(format!("Too many files (max {})", MAX_FILES_PER_CALL)),
+        };
+    }
+
+    let worktree = Path::new(&worktree_path);
+    if !worktree.is_dir() {
+        return WriteWorkspaceFilesResult {
+            success: false,
+            files_written: 0,
+            error: Some(format!("Worktree path '{}' does not exist", worktree_path)),
+        };
+    }
+
+    let mut written = 0u32;
+    for file in &files {
+        if file.content.len() > MAX_FILE_BYTES {
+            return WriteWorkspaceFilesResult {
+                success: false,
+                files_written: written,
+                error: Some(format!("File '{}' exceeds max size (512 KB)", file.path)),
+            };
+        }
+        if file.content.contains('\0') {
+            return WriteWorkspaceFilesResult {
+                success: false,
+                files_written: written,
+                error: Some(format!("File '{}' contains null bytes", file.path)),
+            };
+        }
+
+        let target = match safe_join_worktree(worktree, &file.path) {
+            Ok(p) => p,
+            Err(e) => {
+                return WriteWorkspaceFilesResult {
+                    success: false,
+                    files_written: written,
+                    error: Some(e),
+                };
+            }
+        };
+
+        if let Some(parent) = target.parent() {
+            if let Err(e) = fs::create_dir_all(parent) {
+                return WriteWorkspaceFilesResult {
+                    success: false,
+                    files_written: written,
+                    error: Some(format!("Failed to create directory for '{}': {}", file.path, e)),
+                };
+            }
+        }
+
+        if let Err(e) = fs::write(&target, &file.content) {
+            return WriteWorkspaceFilesResult {
+                success: false,
+                files_written: written,
+                error: Some(format!("Failed to write '{}': {}", file.path, e)),
+            };
+        }
+        written += 1;
+    }
+
+    WriteWorkspaceFilesResult {
+        success: true,
+        files_written: written,
+        error: None,
+    }
 }
 
 // ── Git helpers ───────────────────────────────────────────────────────────────

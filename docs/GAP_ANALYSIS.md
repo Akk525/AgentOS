@@ -12,13 +12,13 @@ Current implementation status mapped against the [future-state PRD](PRD.md). Thi
 |---|--------|--------|----------|
 | 1 | Project Planning | ⚠️ Partial | UI + types + mock plan |
 | 2 | Task Graph Engine | ⚠️ Partial | TaskGraphEngine + executor; UI partially wired |
-| 3 | Agent Organization | ⚠️ Partial | Catalog + spawn UI; no real agents |
+| 3 | Agent Organization | ⚠️ Partial | Builder/reviewer loop (Sprint 6); tester deferred |
 | 4 | Worktree Runtime | ⚠️ Partial | Real create (desktop); incomplete lifecycle |
 | 5 | Execution Timeline | ⚠️ Partial | Durable store + hydrate; sessions still simulated |
 | 6 | Replay Engine | ❌ Missing | UI placeholders only |
 | 7 | Human Governance | ⚠️ Partial | Takeover/inject; weak override wiring |
 | 8 | Approval Gates | ⚠️ Partial | Escalation modal + Rust allowlist |
-| 9 | Multi-Model Runtime | ⚠️ Partial | Health checks; no inference |
+| 9 | Multi-Model Runtime | ⚠️ Partial | Inference + planner (S5); builder/reviewer execution |
 | 10 | Skills Framework | ⚠️ Partial | Static catalog |
 | 11 | Persistent Agent Memory | ❌ Missing | — |
 | 12 | Testing & Verification | ⚠️ Partial | UI + allowlisted test cmds; no project tests |
@@ -267,8 +267,8 @@ See [ROADMAP.md](ROADMAP.md) for the full phased plan. Critical path:
 2. ~~**Task Graph Engine** (Pillar 2) — canonical store + executor~~ **Done (Sprint 2)**
 3. ~~**Goal entry** (Pillar 1) — natural language → create project + plan~~ **Done (Sprint 3)**
 4. ~~**Observatory wiring** (Pillar 15) — Dashboard, Sessions, orchestrator on graph~~ **Done (Sprint 3b–4)**
-5. **Multi-Model Runtime** (Pillar 9) — streaming inference ← **current**
-6. **Agent Organization** (Pillar 3) — real planner/builder/reviewer loop
+5. **Multi-Model Runtime** (Pillar 9) — streaming inference ← **partial (Sprint 5)**
+6. **Agent Organization** (Pillar 3) — builder/reviewer loop ← **partial (Sprint 6)**
 7. **Governance + Gates** (Pillars 7, 8) — merge approval
 
 Year 2: Replay (6), Memory (11), Skills executor (10).

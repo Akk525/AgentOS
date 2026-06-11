@@ -1,4 +1,5 @@
 import type { ProviderHealth } from '../../types'
+import type { CompletionRequest, CompletionResult } from '../inference/types'
 
 // ── ProviderBridge interface ──────────────────────────────────────────────────
 // Each bridge implements this. Swap implementations per provider type.
@@ -9,6 +10,7 @@ export interface ProviderBridge {
   readonly name: string
   ping(): Promise<ProviderHealth>
   getModels(): Promise<string[]>
+  complete(request: CompletionRequest): Promise<CompletionResult>
 }
 
 export type { ProviderHealth }

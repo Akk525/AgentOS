@@ -22,7 +22,7 @@ async function run() {
   const store = getLocalStore()
   await store.init()
 
-  const project = await planFromGoal('Build a REST API for task management')
+  const project = await planFromGoal('Build a REST API for task management', { mode: 'mock' })
   const graph = await store.getProject(project.id)
 
   if (!graph) throw new Error('project graph missing')
@@ -35,6 +35,10 @@ async function run() {
   console.assert(tasks.length === 4, `expected 4 tasks, got ${tasks.length}`)
   console.assert(deps.length === 3, `expected 3 dependency edges, got ${deps.length}`)
   console.assert(project.goalText.includes('REST API'), 'goal text persisted')
+  console.assert(
+    tasks.every(t => t.acceptanceCriteria.length >= 1),
+    'tasks have acceptance criteria',
+  )
 
   const state = taskGraphEngine.getState()
   console.assert(state.activeProject?.id === project.id, 'active project loaded')

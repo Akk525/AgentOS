@@ -4,6 +4,7 @@
 import type {
   DesktopBridge, DirectoryPickResult, RepoInfo, PlatformInfo,
   WorktreeCreateResult, CommandResult, GitDiffResult,
+  WorkspaceFileWrite, WriteWorkspaceFilesResult,
 } from './desktopTypes'
 
 class TauriBridge implements DesktopBridge {
@@ -39,6 +40,14 @@ class TauriBridge implements DesktopBridge {
   async getGitDiff(worktreePath: string): Promise<GitDiffResult> {
     const { invoke } = await import('@tauri-apps/api/core')
     return invoke<GitDiffResult>('get_git_diff', { worktreePath })
+  }
+
+  async writeWorkspaceFiles(
+    worktreePath: string,
+    files: WorkspaceFileWrite[],
+  ): Promise<WriteWorkspaceFilesResult> {
+    const { invoke } = await import('@tauri-apps/api/core')
+    return invoke<WriteWorkspaceFilesResult>('write_workspace_files', { worktreePath, files })
   }
 }
 

@@ -142,9 +142,22 @@ class TaskGraphEngine {
     return edge
   }
 
-  async transitionNode(nodeId: string, status: GraphNode['status']): Promise<void> {
+  async transitionNode(
+    nodeId: string,
+    status: GraphNode['status'],
+    metadataPatch?: Record<string, unknown>,
+    extra?: { assignedSessionId?: string | null; branch?: string | null },
+  ): Promise<void> {
     const node = this.state.nodes.find(n => n.id === nodeId)
     if (!node) return
+
+    const metadata = metadataPatch
+      ? { ...node.metadata, ...metadataPatch }
+      : node.metadata
+    const assignedSessionId = extra?.assignedSessionId !== undefined
+      ? extra.assignedSessionId
+      : node.assignedSessionId
+    const branch = extra?.branch !== undefined ? extra.branch : node.branch
 
     await getLocalStore().upsertNode({
       id: node.id,
@@ -156,22 +169,57 @@ class TaskGraphEngine {
       status,
       acceptanceCriteria: node.acceptanceCriteria,
       assignedRole: node.assignedRole,
-      assignedSessionId: node.assignedSessionId,
-      branch: node.branch,
-      metadata: node.metadata,
+      assignedSessionId,
+      branch,
+      metadata,
     })
 
     await getLocalStore().appendEvent({
       projectId: node.projectId,
       nodeId: node.id,
+      sessionId: assignedSessionId ?? undefined,
       type: 'subtask_assigned',
       message: `Node ${node.title} → ${status}`,
       severity: 'info',
     })
 
-    const nodes = this.state.nodes.map(n => (n.id === nodeId ? { ...n, status } : n))
+    const nodes = this.state.nodes.map(n =>
+      n.id === nodeId
+        ? { ...n, status, metadata, assignedSessionId, branch }
+        : n,
+    )
     this.patch({ nodes })
     this.recomputeExecutor()
+  }
+
+  async updateNodeMetadata(
+    nodeId: string,
+    metadataPatch: Record<string, unknown>,
+  ): Promise<void> {
+    const node = this.state.nodes.find(n => n.id === nodeId)
+    if (!node) return
+
+    const metadata = { ...node.metadata, ...metadataPatch }
+
+    await getLocalStore().upsertNode({
+      id: node.id,
+      projectId: node.projectId,
+      type: node.type,
+      parentId: node.parentId,
+      title: node.title,
+      description: node.description,
+      status: node.status,
+      acceptanceCriteria: node.acceptanceCriteria,
+      assignedRole: node.assignedRole,
+      assignedSessionId: node.assignedSessionId,
+      branch: node.branch,
+      metadata,
+    })
+
+    const nodes = this.state.nodes.map(n =>
+      n.id === nodeId ? { ...n, metadata } : n,
+    )
+    this.patch({ nodes })
   }
 }
 

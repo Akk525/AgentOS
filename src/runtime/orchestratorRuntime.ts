@@ -5,7 +5,7 @@ import type {
 } from '../types'
 import { getLocalStore } from './store'
 import { orchestratorEventToAppendInput, storedEventToOrchestrator } from './eventProjection'
-import { graphToActiveSessions, graphToSessionDependencies } from './orchestrationProjection'
+import { graphToActiveSessions, graphToReviewSessions, graphToSessionDependencies } from './orchestrationProjection'
 import { taskGraphEngine } from './taskGraphEngine'
 
 export interface OrchestratorState {
@@ -57,14 +57,26 @@ class OrchestratorRuntime {
   private initPromise: Promise<void> | null = null
   private activeProjectId: string | null = null
 
+  private refreshTimer: ReturnType<typeof setTimeout> | null = null
+
   async init(): Promise<void> {
     if (this.initPromise) return this.initPromise
     this.initPromise = this.doInit()
     return this.initPromise
   }
 
+  private scheduleRefresh(): void {
+    if (this.refreshTimer) clearTimeout(this.refreshTimer)
+    this.refreshTimer = setTimeout(() => {
+      void this.refreshFromStore()
+    }, 100)
+  }
+
   private async doInit(): Promise<void> {
     await taskGraphEngine.init()
+    taskGraphEngine.subscribe(() => {
+      this.scheduleRefresh()
+    })
     await this.hydrateFromStore()
   }
 
@@ -99,6 +111,8 @@ class OrchestratorRuntime {
       if (project && nodes.length > 0) {
         const activeSessions = graphToActiveSessions(nodes, project)
         const dependencies = graphToSessionDependencies(nodes, edges)
+        const reviewSessions = graphToReviewSessions(nodes)
+        const readyIds = graphState.readyNodeIds
         const runningCount = activeSessions.filter(
           s => s.status === 'running' || s.status === 'reviewing' || s.status === 'planning',
         ).length
@@ -107,6 +121,21 @@ class OrchestratorRuntime {
           timeline,
           activeSessions,
           dependencies,
+          reviewSessions,
+          runtimeQueue: readyIds.map((nodeId, index) => {
+            const n = nodes.find(node => node.id === nodeId)
+            const meta = (n?.metadata ?? {}) as Record<string, unknown>
+            return {
+              id: `rq-${nodeId}`,
+              taskTitle: n?.title ?? 'Ready task',
+              workspaceName: project.title,
+              agentName: (meta.assignedAgentName as string) ?? 'Builder',
+              queuedAt: new Date().toISOString(),
+              waitingFor: 'dependency' as const,
+              estimatedWaitSeconds: index * 30,
+              priority: index === 0 ? 'high' as const : 'normal' as const,
+            }
+          }),
           runtimeLoad: {
             ...defaultRuntimeLoad,
             activeSessions: activeSessions.length,
@@ -126,6 +155,8 @@ class OrchestratorRuntime {
           timeline,
           activeSessions: [],
           dependencies: [],
+          reviewSessions: [],
+          runtimeQueue: [],
           runtimeLoad: { ...defaultRuntimeLoad },
         })
       }
