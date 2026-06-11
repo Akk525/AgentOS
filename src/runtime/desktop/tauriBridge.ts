@@ -6,6 +6,7 @@ import type {
   WorktreeCreateResult, CommandResult, GitDiffResult,
   WorkspaceFileWrite, WriteWorkspaceFilesResult,
   MergeWorktreeResult, RemoveWorktreeResult,
+  DiscoveredSkillFile, ReadWorkspaceFileResult, SearchWorkspaceResult,
 } from './desktopTypes'
 
 class TauriBridge implements DesktopBridge {
@@ -67,6 +68,25 @@ class TauriBridge implements DesktopBridge {
   ): Promise<RemoveWorktreeResult> {
     const { invoke } = await import('@tauri-apps/api/core')
     return invoke<RemoveWorktreeResult>('remove_worktree', { repoPath, worktreePath, branchName })
+  }
+
+  async discoverSkills(repoPath?: string): Promise<DiscoveredSkillFile[]> {
+    const { invoke } = await import('@tauri-apps/api/core')
+    return invoke<DiscoveredSkillFile[]>('discover_skills', { repoPath: repoPath ?? null })
+  }
+
+  async readWorkspaceFile(worktreePath: string, relPath: string): Promise<ReadWorkspaceFileResult> {
+    const { invoke } = await import('@tauri-apps/api/core')
+    return invoke<ReadWorkspaceFileResult>('read_workspace_file', { worktreePath, relPath })
+  }
+
+  async searchWorkspace(
+    worktreePath: string,
+    query: string,
+    limit?: number,
+  ): Promise<SearchWorkspaceResult> {
+    const { invoke } = await import('@tauri-apps/api/core')
+    return invoke<SearchWorkspaceResult>('search_workspace', { worktreePath, query, limit })
   }
 }
 

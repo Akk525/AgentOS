@@ -2,6 +2,7 @@
 
 mod commands;
 mod db;
+mod skills_commands;
 mod store_commands;
 
 fn main() {
@@ -16,6 +17,9 @@ fn main() {
             commands::write_workspace_files,
             commands::merge_worktree,
             commands::remove_worktree,
+            commands::read_workspace_file,
+            commands::search_workspace,
+            skills_commands::discover_skills,
             store_commands::store_init,
             store_commands::store_get_status,
             store_commands::store_list_projects,

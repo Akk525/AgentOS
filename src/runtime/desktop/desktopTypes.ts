@@ -71,6 +71,32 @@ export interface RemoveWorktreeResult {
   error: string | null
 }
 
+export interface DiscoveredSkillFile {
+  id: string
+  scope: 'personal' | 'project' | 'bundled'
+  sourcePath: string
+  content: string
+}
+
+export interface ReadWorkspaceFileResult {
+  success: boolean
+  content: string
+  path: string
+  error: string | null
+}
+
+export interface SearchWorkspaceMatch {
+  path: string
+  line: number
+  text: string
+}
+
+export interface SearchWorkspaceResult {
+  success: boolean
+  matches: SearchWorkspaceMatch[]
+  error: string | null
+}
+
 export interface DesktopBridge {
   environment: DesktopEnvironment
   pickDirectory(): Promise<DirectoryPickResult>
@@ -82,4 +108,7 @@ export interface DesktopBridge {
   writeWorkspaceFiles(worktreePath: string, files: WorkspaceFileWrite[]): Promise<WriteWorkspaceFilesResult>
   mergeWorktree(repoPath: string, branchName: string, targetBranch?: string): Promise<MergeWorktreeResult>
   removeWorktree(repoPath: string, worktreePath: string, branchName?: string): Promise<RemoveWorktreeResult>
+  discoverSkills(repoPath?: string): Promise<DiscoveredSkillFile[]>
+  readWorkspaceFile(worktreePath: string, relPath: string): Promise<ReadWorkspaceFileResult>
+  searchWorkspace(worktreePath: string, query: string, limit?: number): Promise<SearchWorkspaceResult>
 }

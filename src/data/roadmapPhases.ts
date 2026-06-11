@@ -62,7 +62,7 @@ export const ROADMAP_PHASES: RoadmapPhase[] = [
     items: [
       '✓ Replay engine — step-through provenance for any feature — Sprint 10',
       '✓ Persistent agent memory + Memora integration API — Sprint 11',
-      'Skills framework executor (SKILL.md-compatible)',
+      '✓ Skills framework executor (SKILL.md-compatible) — Sprint 12',
       'Observatory consolidation — unified graph-centric dashboard',
       'Concurrent session scale + worktree lifecycle cleanup',
       'MCP tool integration via skills',

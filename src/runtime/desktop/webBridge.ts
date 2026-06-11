@@ -5,6 +5,7 @@ import type {
   DesktopBridge, DirectoryPickResult, RepoInfo, PlatformInfo,
   WorktreeCreateResult, CommandResult, GitDiffResult,
   WorkspaceFileWrite, WriteWorkspaceFilesResult,
+  DiscoveredSkillFile, ReadWorkspaceFileResult, SearchWorkspaceResult,
 } from './desktopTypes'
 
 const KNOWN_REPOS: Record<string, Partial<RepoInfo>> = {
@@ -225,6 +226,32 @@ class WebBridge implements DesktopBridge {
       success: true,
       stdout: `Removed worktree ${worktreePath}${branchName ? `\nDeleted branch ${branchName}` : ''}`,
       stderr: '',
+      error: null,
+    }
+  }
+
+  async discoverSkills(_repoPath?: string): Promise<DiscoveredSkillFile[]> {
+    return []
+  }
+
+  async readWorkspaceFile(_worktreePath: string, relPath: string): Promise<ReadWorkspaceFileResult> {
+    await new Promise(r => setTimeout(r, 100))
+    return {
+      success: true,
+      content: `// Simulated file: ${relPath}\nexport const mock = true\n`,
+      path: relPath,
+      error: null,
+    }
+  }
+
+  async searchWorkspace(_worktreePath: string, query: string, limit?: number): Promise<SearchWorkspaceResult> {
+    await new Promise(r => setTimeout(r, 100))
+    const max = limit ?? 20
+    return {
+      success: true,
+      matches: [
+        { path: 'src/auth/session.ts', line: 12, text: `mock match for: ${query}` },
+      ].slice(0, max),
       error: null,
     }
   }

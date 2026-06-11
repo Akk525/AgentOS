@@ -4,6 +4,7 @@ import { GlassPanel } from '../shared/GlassPanel'
 import { StatusPill } from '../shared/StatusPill'
 import { GlowButton } from '../shared/GlowButton'
 import { mockAgents } from '../../data/mockAgents'
+import { useSkills } from '../../hooks/useSkills'
 import type { Agent } from '../../types'
 
 const roleIcons: Record<Agent['role'], string> = {
@@ -23,6 +24,11 @@ const permissionColors: Record<string, string> = {
 }
 
 export function AgentsView() {
+  const { skills } = useSkills()
+
+  const resolveSkillName = (skillId: string) =>
+    skills.find(s => s.id === skillId)?.name ?? skillId
+
   return (
     <div className="h-full overflow-y-auto scrollbar-thin p-5">
       <div className="flex items-center justify-between mb-5">
@@ -96,6 +102,25 @@ export function AgentsView() {
                   )}
                 </div>
               </div>
+
+              {/* Skills */}
+              {agent.skills.length > 0 && (
+                <div className="mb-3">
+                  <div className="text-[9px] text-slate-600 font-mono uppercase tracking-wider mb-1.5">
+                    Skills
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {agent.skills.map(skillId => (
+                      <span
+                        key={skillId}
+                        className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
+                      >
+                        {resolveSkillName(skillId)}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Footer */}
               <div className="flex items-center justify-between pt-3 border-t border-white/[0.06]">

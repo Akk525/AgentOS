@@ -48,6 +48,17 @@ export async function runTestWriterForNode(
   const testCommand = (meta.testCommand as string | undefined) ?? DEFAULT_TEST_COMMAND
   const { worktreePath, branchName, sourceNode } = resolveUpstreamWorktree(node, nodes, edges)
 
+  const { applySkillsForNode } = await import('../skills/applySkillsForNode')
+  await applySkillsForNode({
+    node,
+    project,
+    worktreePath,
+    agentRole: 'test-writer',
+    providerId: meta.provider as string | undefined,
+    modelId: meta.model as string | undefined,
+    sessionId,
+  })
+
   const bridge = await getDesktopBridge()
   const cmdResult = await bridge.runWorkspaceCommand(worktreePath, testCommand)
 

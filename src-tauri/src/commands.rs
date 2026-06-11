@@ -94,7 +94,34 @@ pub struct RemoveWorktreeResult {
     pub error: Option<String>,
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReadWorkspaceFileResult {
+    pub success: bool,
+    pub content: String,
+    pub path: String,
+    pub error: Option<String>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SearchWorkspaceMatch {
+    pub path: String,
+    pub line: u32,
+    pub text: String,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SearchWorkspaceResult {
+    pub success: bool,
+    pub matches: Vec<SearchWorkspaceMatch>,
+    pub error: Option<String>,
+}
+
 const MAX_FILE_BYTES: usize = 512 * 1024;
+const MAX_SEARCH_OUTPUT_BYTES: usize = 64 * 1024;
+const MAX_SEARCH_MATCHES: usize = 50;
 const MAX_FILES_PER_CALL: usize = 20;
 
 // ── Allowlist ─────────────────────────────────────────────────────────────────
@@ -418,6 +445,166 @@ fn safe_join_worktree(worktree_path: &Path, rel_path: &str) -> Result<PathBuf, S
     }
 
     Ok(joined)
+}
+
+#[tauri::command]
+pub fn read_workspace_file(worktree_path: String, rel_path: String) -> ReadWorkspaceFileResult {
+    let worktree = Path::new(&worktree_path);
+    if !worktree.is_dir() {
+        return ReadWorkspaceFileResult {
+            success: false,
+            content: String::new(),
+            path: rel_path,
+            error: Some(format!("Worktree path '{}' does not exist", worktree_path)),
+        };
+    }
+
+    let target = match safe_join_worktree(worktree, &rel_path) {
+        Ok(p) => p,
+        Err(e) => {
+            return ReadWorkspaceFileResult {
+                success: false,
+                content: String::new(),
+                path: rel_path,
+                error: Some(e),
+            };
+        }
+    };
+
+    if !target.is_file() {
+        return ReadWorkspaceFileResult {
+            success: false,
+            content: String::new(),
+            path: rel_path.clone(),
+            error: Some(format!("File not found: {}", rel_path)),
+        };
+    }
+
+    match fs::read_to_string(&target) {
+        Ok(content) => {
+            if content.len() > MAX_FILE_BYTES {
+                return ReadWorkspaceFileResult {
+                    success: false,
+                    content: String::new(),
+                    path: rel_path.clone(),
+                    error: Some(format!("File '{}' exceeds max size (512 KB)", rel_path)),
+                };
+            }
+            ReadWorkspaceFileResult {
+                success: true,
+                content,
+                path: rel_path,
+                error: None,
+            }
+        }
+        Err(e) => ReadWorkspaceFileResult {
+            success: false,
+            content: String::new(),
+            path: rel_path.clone(),
+            error: Some(format!("Failed to read '{}': {}", rel_path, e)),
+        },
+    }
+}
+
+#[tauri::command]
+pub fn search_workspace(
+    worktree_path: String,
+    query: String,
+    limit: Option<u32>,
+) -> SearchWorkspaceResult {
+    let worktree = Path::new(&worktree_path);
+    if !worktree.is_dir() {
+        return SearchWorkspaceResult {
+            success: false,
+            matches: vec![],
+            error: Some(format!("Worktree path '{}' does not exist", worktree_path)),
+        };
+    }
+
+    let trimmed = query.trim();
+    if trimmed.is_empty() {
+        return SearchWorkspaceResult {
+            success: false,
+            matches: vec![],
+            error: Some("Search query cannot be empty".to_string()),
+        };
+    }
+
+    let max_matches = limit.unwrap_or(20).min(MAX_SEARCH_MATCHES as u32) as usize;
+    let mut matches: Vec<SearchWorkspaceMatch> = Vec::new();
+
+    // Prefer ripgrep when available
+    let rg_result = Command::new("rg")
+        .args([
+            "--no-heading",
+            "--line-number",
+            "--max-count",
+            &max_matches.to_string(),
+            "--max-filesize",
+            "512K",
+            trimmed,
+            ".",
+        ])
+        .current_dir(worktree)
+        .output();
+
+    if let Ok(output) = rg_result {
+        if output.status.success() || !output.stdout.is_empty() {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            for line in stdout.lines().take(max_matches) {
+                let parts: Vec<&str> = line.splitn(3, ':').collect();
+                if parts.len() >= 3 {
+                    matches.push(SearchWorkspaceMatch {
+                        path: parts[0].to_string(),
+                        line: parts[1].parse().unwrap_or(0),
+                        text: parts[2].to_string(),
+                    });
+                }
+            }
+            return SearchWorkspaceResult {
+                success: true,
+                matches,
+                error: None,
+            };
+        }
+    }
+
+    // Fallback: grep -r
+    let grep_result = Command::new("grep")
+        .args(["-rn", "--", trimmed, "."])
+        .current_dir(worktree)
+        .output();
+
+    match grep_result {
+        Ok(output) => {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let mut total_bytes = 0usize;
+            for line in stdout.lines() {
+                if matches.len() >= max_matches || total_bytes >= MAX_SEARCH_OUTPUT_BYTES {
+                    break;
+                }
+                let parts: Vec<&str> = line.splitn(3, ':').collect();
+                if parts.len() >= 3 {
+                    total_bytes += line.len();
+                    matches.push(SearchWorkspaceMatch {
+                        path: parts[0].trim_start_matches("./").to_string(),
+                        line: parts[1].parse().unwrap_or(0),
+                        text: parts[2].to_string(),
+                    });
+                }
+            }
+            SearchWorkspaceResult {
+                success: true,
+                matches,
+                error: None,
+            }
+        }
+        Err(e) => SearchWorkspaceResult {
+            success: false,
+            matches: vec![],
+            error: Some(format!("Search failed (rg/grep unavailable): {}", e)),
+        },
+    }
 }
 
 #[tauri::command]

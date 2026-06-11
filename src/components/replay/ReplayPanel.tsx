@@ -161,6 +161,34 @@ export function ReplayPanel() {
                       ))}
                     </div>
                   )}
+                  {step?.type === 'skill_loaded' && (
+                    <div className="pt-2 border-t border-white/[0.04] space-y-1">
+                      <div className="text-[9px] font-mono text-emerald-500 uppercase tracking-widest">
+                        Skills loaded
+                      </div>
+                      <p className="text-[11px] text-slate-400">
+                        {(payload.skillNames as string[] | undefined)?.join(', ') ?? step.message}
+                      </p>
+                    </div>
+                  )}
+                  {step && ['read_file', 'search_code', 'run_tests', 'get_git_diff'].includes(step.type) && (
+                    <div className="pt-2 border-t border-white/[0.04] space-y-1">
+                      <div className="text-[9px] font-mono text-cyan-500 uppercase tracking-widest">
+                        Skill tool: {step.type}
+                      </div>
+                      {typeof payload.tool === 'string' && (
+                        <p className="text-[10px] font-mono text-slate-500">
+                          {payload.tool}
+                          {payload.args ? ` ${JSON.stringify(payload.args)}` : ''}
+                        </p>
+                      )}
+                      {(payload.detail as string | undefined) && (
+                        <pre className="text-[10px] font-mono text-slate-500 whitespace-pre-wrap max-h-32 overflow-y-auto">
+                          {String(payload.detail).slice(0, 2000)}
+                        </pre>
+                      )}
+                    </div>
+                  )}
                   {chain && chain.tasks.length > 0 && (
                     <div className="pt-2 border-t border-white/[0.04]">
                       <div className="text-[9px] font-mono text-slate-700 uppercase tracking-widest mb-1">Tasks</div>

@@ -26,6 +26,10 @@ const STORED_TO_ORCHESTRATOR: Record<string, OrchestratorEventType> = {
   escalated: 'escalated',
   memory_recorded: 'memory_recorded',
   fetch_context: 'fetch_context',
+  skill_loaded: 'skill_loaded',
+  read_file: 'read_file',
+  search_code: 'search_code',
+  run_tests: 'run_tests',
 }
 
 function severity(s: string): OrchestratorEventSeverity {

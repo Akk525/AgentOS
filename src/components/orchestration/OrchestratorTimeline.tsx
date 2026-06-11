@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Play, GitCommit, CheckCircle2, XCircle, Shield,
-  MessageSquare, AlertTriangle, Cpu, Clock, GitMerge, Brain,
+  MessageSquare, AlertTriangle, Cpu, Clock, GitMerge, Brain, Zap, FileText, Search,
 } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { useOrchestrator } from '../../context/OrchestratorContext'
@@ -35,6 +35,10 @@ const TYPE_CONFIG: Record<OrchestratorEventType, {
   escalated:        { icon: <AlertTriangle size={9} />,  label: 'escalated'    },
   memory_recorded:  { icon: <Brain size={9} />,          label: 'memory'       },
   fetch_context:    { icon: <Brain size={9} />,          label: 'recall'       },
+  skill_loaded:     { icon: <Zap size={9} />,            label: 'skill'        },
+  read_file:        { icon: <FileText size={9} />,       label: 'read'         },
+  search_code:      { icon: <Search size={9} />,         label: 'search'       },
+  run_tests:        { icon: <CheckCircle2 size={9} />,   label: 'tests'        },
 }
 
 const SEVERITY_COLORS: Record<OrchestratorEventSeverity, { dot: string; text: string; dim: string }> = {

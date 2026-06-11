@@ -238,6 +238,29 @@ What shipped:
 - Orchestrator timeline tab includes “Replay feature” for epic scope
 - OpenAI/Anthropic builder streaming when provider supports `stream()`
 
+### Sprint 12 — Skills executor (complete)
+
+**Shipped:** SKILL.md loader/registry, agentic tool loop, agent binding, Skills UI from disk.
+
+| What shipped | Where |
+|--------------|-------|
+| SKILL.md parser + registry | `src/runtime/skills/parseSkillFile.ts`, `skillRegistry.ts`, `loadSkills.ts` |
+| Tauri discover/read/search | `src-tauri/src/skills_commands.rs`, `commands.rs` `read_workspace_file` / `search_workspace` |
+| Agentic skill loop | `src/runtime/skills/skillAgentLoop.ts`, `skillToolRunner.ts`, `skillLoopSchema.ts` |
+| Agent binding + injection | `applySkillsForNode.ts`, `builderAgent.ts`, `reviewerAgent.ts`, `testWriterAgent.ts` |
+| Skills UI from registry | `SkillsView.tsx`, `useSkills.ts`, `AgentsView.tsx` skill badges |
+| Bundled example skills | `skills/*/SKILL.md`, `bundledSkillContent.ts` |
+| Event + timeline wiring | `skill_loaded`, tool trace types in `eventProjection.ts`, `OrchestratorTimeline.tsx` |
+| *(stretch)* Replay skill steps | `ReplayPanel.tsx` |
+| *(stretch)* Spawn session skill picker | `SpawnSessionModal.tsx` |
+
+**Behaviour today:**
+- Discovers Cursor-compatible skills from `~/.cursor/skills`, project `.cursor/skills`, and bundled defaults
+- Builder/reviewer/test-writer run agentic read/search/diff/memory/test loop when skills are bound
+- Skill instructions + gathered context injected into downstream agent prompts
+- Observatory Skills tab shows live registry; Agents tab shows resolved skill names
+- Timeline/replay show `skill_loaded` and per-tool trace steps
+
 ### Sprint 11 — Agent memory (complete)
 
 **Shipped:** Persistent per-project memory store, recall-at-task-start, Memora-ready export.
@@ -329,7 +352,7 @@ Phase A complete (persistence + graph engine).
 
 ## Phase C — Year 2 Success (~12 → 24 months)
 
-**Status:** Current (Sprint 11 — agent memory shipped)
+**Status:** Current (Sprint 12 — skills executor shipped)
 
 **Goal:** Maintain large repositories over months with replay, memory, and minimal supervision.
 
@@ -348,7 +371,7 @@ Maps to PRD Year 2 success criteria:
 |-------------|---------|----------|
 | Replay engine | 6 | **Done (Sprint 10)** — Step-through UI from event log + session traces; branch exploration deferred |
 | Agent memory | 11 | **Done (Sprint 11)** — SQLite memory store, recall injection, export bundle; vector search deferred |
-| Skills executor | 10 | Load SKILL.md-style skills; bind to agents at assignment |
+| Skills executor | 10 | **Done (Sprint 12)** — SKILL.md loader, agentic tool loop, agent binding; MCP deferred |
 | Observatory consolidation | 15 | Unified dashboard; graph-centric navigation; replay + memory panels |
 | Scale hardening | 2, 3, 4 | Concurrent sessions; worktree cleanup; graph performance |
 | MCP integration | 10 | External tools via skills framework |

@@ -9,6 +9,7 @@ import { cn } from '../../lib/utils'
 import { useRuntime } from '../../context/RuntimeContext'
 import { mockWorkspaces } from '../../data/mockWorkspaces'
 import { mockAgents } from '../../data/mockAgents'
+import { useSkills } from '../../hooks/useSkills'
 import type { Workspace, Agent, SessionLaunchConfig, LaunchStepStatus } from '../../types'
 
 // ── Step definitions ──────────────────────────────────────────────────────────
@@ -216,12 +217,18 @@ function BranchStep({ value, onChange }: { value: string; onChange: (v: string) 
   )
 }
 
-function ConfigStep({ providerId, modelId, onChange }: {
+function ConfigStep({ providerId, modelId, skillId, agent, onChange }: {
   providerId: string
   modelId: string
-  onChange: (providerId: string, modelId: string) => void
+  skillId: string | null
+  agent: Agent | null
+  onChange: (providerId: string, modelId: string, skillId: string | null) => void
 }) {
+  const { skills } = useSkills()
   const provider = PROVIDER_OPTIONS.find(p => p.id === providerId) ?? PROVIDER_OPTIONS[0]
+  const agentSkills = agent
+    ? skills.filter(s => agent.skills.includes(s.id))
+    : skills
   return (
     <div className="flex flex-col gap-4">
       <div>
@@ -230,7 +237,7 @@ function ConfigStep({ providerId, modelId, onChange }: {
           {PROVIDER_OPTIONS.map(p => (
             <button
               key={p.id}
-              onClick={() => onChange(p.id, p.models[0])}
+              onClick={() => onChange(p.id, p.models[0], skillId)}
               className={cn(
                 'px-2 py-2 rounded-xl text-[11px] font-mono border text-center transition-all',
                 providerId === p.id
@@ -249,7 +256,7 @@ function ConfigStep({ providerId, modelId, onChange }: {
           {provider.models.map(m => (
             <button
               key={m}
-              onClick={() => onChange(providerId, m)}
+              onClick={() => onChange(providerId, m, skillId)}
               className={cn(
                 'w-full flex items-center justify-between px-3 py-2 rounded-lg border text-left text-[11px] font-mono transition-all',
                 modelId === m
@@ -263,6 +270,38 @@ function ConfigStep({ providerId, modelId, onChange }: {
           ))}
         </div>
       </div>
+      {agentSkills.length > 0 && (
+        <div>
+          <div className="text-[9px] font-mono text-slate-700 uppercase tracking-widest mb-2">Skill (optional)</div>
+          <div className="flex flex-col gap-1.5 max-h-32 overflow-y-auto">
+            <button
+              onClick={() => onChange(providerId, modelId, null)}
+              className={cn(
+                'w-full text-left px-3 py-2 rounded-lg border text-[11px] font-mono transition-all',
+                skillId === null
+                  ? 'border-cyan-500/30 bg-cyan-500/8 text-slate-200'
+                  : 'border-white/[0.05] text-slate-600 hover:border-white/[0.10]',
+              )}
+            >
+              Default agent skills
+            </button>
+            {agentSkills.map(s => (
+              <button
+                key={s.id}
+                onClick={() => onChange(providerId, modelId, s.id)}
+                className={cn(
+                  'w-full text-left px-3 py-2 rounded-lg border text-[11px] font-mono transition-all',
+                  skillId === s.id
+                    ? 'border-cyan-500/30 bg-cyan-500/8 text-slate-200'
+                    : 'border-white/[0.05] text-slate-600 hover:border-white/[0.10]',
+                )}
+              >
+                {s.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.02] border border-white/[0.05]">
         <Shield size={10} className="text-slate-600 flex-shrink-0" />
         <span className="text-[10px] font-mono text-slate-600">Permissions: filesystem read/write, git, shell (sandboxed)</span>
@@ -278,6 +317,7 @@ function SummaryStep({ config }: { config: SessionLaunchConfig }) {
     { label: 'Branch',    value: config.branchName     },
     { label: 'Provider',  value: config.providerName   },
     { label: 'Model',     value: config.modelId        },
+    ...(config.skillId ? [{ label: 'Skill', value: config.skillId }] : []),
   ]
   return (
     <div className="flex flex-col gap-3">
@@ -492,6 +532,7 @@ export function SpawnSessionModal({ onClose, initialWorkspace }: SpawnSessionMod
   const [branch,    setBranch]    = useState('')
   const [providerId, setProviderId] = useState('anthropic')
   const [modelId,    setModelId]    = useState('claude-sonnet-4-6')
+  const [skillId,    setSkillId]    = useState<string | null>(null)
 
   useEffect(() => {
     if (preselected) setStep('agent')
@@ -537,6 +578,7 @@ export function SpawnSessionModal({ onClose, initialWorkspace }: SpawnSessionMod
       providerId,
       providerName,
       modelId,
+      ...(skillId ? { skillId } : {}),
     }
     setStep('launch')
     setTimeout(() => spawnSession(config), 100)
@@ -554,6 +596,7 @@ export function SpawnSessionModal({ onClose, initialWorkspace }: SpawnSessionMod
     providerId,
     providerName: PROVIDER_OPTIONS.find(p => p.id === providerId)?.name ?? providerId,
     modelId,
+    ...(skillId ? { skillId } : {}),
   }
 
   return (
@@ -630,7 +673,13 @@ export function SpawnSessionModal({ onClose, initialWorkspace }: SpawnSessionMod
                         <ConfigStep
                           providerId={providerId}
                           modelId={modelId}
-                          onChange={(pid, mid) => { setProviderId(pid); setModelId(mid) }}
+                          skillId={skillId}
+                          agent={agent}
+                          onChange={(pid, mid, sid) => {
+                            setProviderId(pid)
+                            setModelId(mid)
+                            setSkillId(sid)
+                          }}
                         />
                       )}
                       {step === 'summary' && (

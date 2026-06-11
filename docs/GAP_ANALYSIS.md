@@ -19,7 +19,7 @@ Current implementation status mapped against the [future-state PRD](PRD.md). Thi
 | 7 | Human Governance | ⚠️ Partial | Governance modes enforced at runtime (Sprint 8); audit/replay integration deferred |
 | 8 | Approval Gates | ⚠️ Partial | Merge gate + conflict fix spawn (Sprint 8–9); file-delete gates deferred |
 | 9 | Multi-Model Runtime | ⚠️ Partial | Inference + planner (S5); builder/reviewer execution |
-| 10 | Skills Framework | ⚠️ Partial | Static catalog |
+| 10 | Skills Framework | ⚠️ Partial | SKILL.md loader + agentic executor (Sprint 12); MCP deferred |
 | 11 | Persistent Agent Memory | ⚠️ Partial | Per-project memory + recall (Sprint 11) |
 | 12 | Testing & Verification | ⚠️ Partial | Test-writer agent runs tests on graph (Sprint 7); coverage gates deferred |
 | 13 | Cost Accounting | ⚠️ Partial | Real metering + rollups (Sprint 9); budgets deferred |
@@ -165,10 +165,10 @@ flowchart TB
 
 | | |
 |---|---|
-| **Status** | ⚠️ Partial |
-| **Existing assets** | `Skill` type; [`SkillsView.tsx`](../src/components/skills/SkillsView.tsx); [`mockSkills.ts`](../src/data/mockSkills.ts) |
-| **Gap** | No loader/executor; "New Skill" button non-functional; skill picker cosmetic |
-| **Priority** | Year 2 |
+| **Status** | ⚠️ Partial (Sprint 12 — loader + agentic executor shipped) |
+| **Existing assets** | [`src/runtime/skills/`](../src/runtime/skills/); [`SkillsView.tsx`](../src/components/skills/SkillsView.tsx); bundled `skills/*/SKILL.md` |
+| **Gap** | MCP tool integration; planner auto-assigns skillIds; skill authoring UI |
+| **Priority** | Year 2 tail (MCP) |
 
 ---
 

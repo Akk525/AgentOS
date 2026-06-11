@@ -19,6 +19,7 @@ function buildReviewPrompt(
   testSummary: string,
   builderSummary: string,
   recalledMemory?: string,
+  skillContext?: string,
 ): string {
   const criteria = node.acceptanceCriteria.length > 0
     ? node.acceptanceCriteria.map(c => `- ${c}`).join('\n')
@@ -39,11 +40,14 @@ ${diffSummary}
 Test results:
 ${testSummary}
 ${recalledMemory ? `\n${recalledMemory}\n` : ''}
+${skillContext ? `\n${skillContext}\n` : ''}
 Return a review verdict as JSON.`
 }
 
 export interface RunReviewerOptions {
   recalledMemory?: string
+  skillContext?: string
+  worktreePath?: string
 }
 
 function formatTestSummary(testResults: TestResult[]): string {
@@ -145,6 +149,29 @@ export async function runReviewerForNode(
   )
 
   const meta = node.metadata as Record<string, unknown>
+  let skillContext = options.skillContext
+  if (!skillContext) {
+    try {
+      const { resolveUpstreamWorktree } = await import('../graphWorktree')
+      const { worktreePath } = options.worktreePath
+        ? { worktreePath: options.worktreePath }
+        : resolveUpstreamWorktree(node, nodes, edges)
+      const { applySkillsForNode } = await import('../skills/applySkillsForNode')
+      const skillResult = await applySkillsForNode({
+        node,
+        project,
+        worktreePath,
+        agentRole: 'reviewer',
+        providerId: meta.provider as string | undefined,
+        modelId: meta.model as string | undefined,
+        sessionId,
+      })
+      skillContext = skillResult?.contextBlock
+    } catch {
+      // Reviewer can proceed without worktree-backed skill loop
+    }
+  }
+
   const result = await completeForRole(
     'reviewer',
     {
@@ -159,6 +186,7 @@ export async function runReviewerForNode(
             testSummary,
             builderSummary,
             options.recalledMemory,
+            skillContext,
           ),
         },
       ],

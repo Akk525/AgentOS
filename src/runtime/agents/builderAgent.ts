@@ -22,6 +22,7 @@ function buildUserPrompt(
   project: Project,
   worktreePath: string,
   recalledMemory?: string,
+  skillContext?: string,
 ): string {
   const criteria = node.acceptanceCriteria.length > 0
     ? node.acceptanceCriteria.map(c => `- ${c}`).join('\n')
@@ -37,6 +38,7 @@ ${criteria}
 
 Worktree path: ${worktreePath}
 ${recalledMemory ? `\n${recalledMemory}\n` : ''}
+${skillContext ? `\n${skillContext}\n` : ''}
 Implement this task. Return JSON with file changes.`
 }
 
@@ -45,6 +47,7 @@ export interface RunBuilderOptions {
   providerId?: string
   modelId?: string
   recalledMemory?: string
+  skillContext?: string
 }
 
 export async function runBuilderForNode(
@@ -86,7 +89,22 @@ export async function runBuilderForNode(
   const providerId = options.providerId ?? (meta.provider as string | undefined)
   const modelId = options.modelId ?? (meta.model as string | undefined)
 
-  const userPrompt = buildUserPrompt(node, project, worktreePath, options.recalledMemory)
+  let skillContext = options.skillContext
+  if (!skillContext) {
+    const { applySkillsForNode } = await import('../skills/applySkillsForNode')
+    const skillResult = await applySkillsForNode({
+      node,
+      project,
+      worktreePath,
+      agentRole: 'builder',
+      providerId,
+      modelId,
+      sessionId,
+    })
+    skillContext = skillResult?.contextBlock
+  }
+
+  const userPrompt = buildUserPrompt(node, project, worktreePath, options.recalledMemory, skillContext)
   const inferenceRequest = {
     messages: [
       { role: 'system' as const, content: BUILDER_SYSTEM_PROMPT },

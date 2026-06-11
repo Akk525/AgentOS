@@ -496,6 +496,10 @@ export type OrchestratorEventType =
   | 'escalated'
   | 'memory_recorded'
   | 'fetch_context'
+  | 'skill_loaded'
+  | 'read_file'
+  | 'search_code'
+  | 'run_tests'
 
 export type OrchestratorEventSeverity = 'info' | 'warning' | 'success' | 'error'
 
