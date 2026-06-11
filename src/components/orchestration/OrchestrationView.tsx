@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Network, Layers, ListOrdered, Shield, Activity, GitBranch, Brain } from 'lucide-react'
+import { Network, Layers, ListOrdered, Shield, Activity, GitBranch, Brain, Database } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { useOrchestrator } from '../../context/OrchestratorContext'
 import { RuntimeGraph } from './RuntimeGraph'
@@ -14,8 +14,9 @@ import { useReplay } from '../../hooks/useReplay'
 import { useTaskGraph } from '../../context/TaskGraphContext'
 import { GlowButton } from '../shared/GlowButton'
 import { Play } from 'lucide-react'
+import { MemoryPanel } from '../memory/MemoryPanel'
 
-type OrchestratorTab = 'plan' | 'graph' | 'sessions' | 'queue' | 'reviews' | 'reasoning' | 'timeline'
+type OrchestratorTab = 'plan' | 'graph' | 'sessions' | 'queue' | 'reviews' | 'reasoning' | 'timeline' | 'memory'
 
 const TABS: { id: OrchestratorTab; label: string; icon: React.ReactNode }[] = [
   { id: 'plan',      label: 'Plan',      icon: <GitBranch size={13} />   },
@@ -25,6 +26,7 @@ const TABS: { id: OrchestratorTab; label: string; icon: React.ReactNode }[] = [
   { id: 'reviews',   label: 'Reviews',   icon: <Shield size={13} />      },
   { id: 'reasoning', label: 'Reasoning', icon: <Brain size={13} />       },
   { id: 'timeline',  label: 'Timeline',  icon: <Activity size={13} />    },
+  { id: 'memory',    label: 'Memory',    icon: <Database size={13} />    },
 ]
 
 export function OrchestrationView() {
@@ -89,6 +91,7 @@ export function OrchestrationView() {
           {tab === 'queue'     && <RuntimeQueuePanel />}
           {tab === 'reviews'   && <ReviewSessionPanel />}
           {tab === 'reasoning' && <RuntimeReasoningPanel />}
+          {tab === 'memory' && <MemoryPanel />}
           {tab === 'timeline' && (
             <div className="flex flex-col h-full">
               <div className="flex items-center justify-between px-4 py-2 border-b border-white/[0.05] flex-shrink-0">

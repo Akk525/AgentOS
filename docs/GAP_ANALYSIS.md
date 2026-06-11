@@ -20,7 +20,7 @@ Current implementation status mapped against the [future-state PRD](PRD.md). Thi
 | 8 | Approval Gates | ⚠️ Partial | Merge gate + conflict fix spawn (Sprint 8–9); file-delete gates deferred |
 | 9 | Multi-Model Runtime | ⚠️ Partial | Inference + planner (S5); builder/reviewer execution |
 | 10 | Skills Framework | ⚠️ Partial | Static catalog |
-| 11 | Persistent Agent Memory | ❌ Missing | — |
+| 11 | Persistent Agent Memory | ⚠️ Partial | Per-project memory + recall (Sprint 11) |
 | 12 | Testing & Verification | ⚠️ Partial | Test-writer agent runs tests on graph (Sprint 7); coverage gates deferred |
 | 13 | Cost Accounting | ⚠️ Partial | Real metering + rollups (Sprint 9); budgets deferred |
 | 14 | Local First | ⚠️ Partial | Tauri-first + SQLite store (Sprint 1); orchestrator not hydrated |
@@ -176,10 +176,10 @@ flowchart TB
 
 | | |
 |---|---|
-| **Status** | ❌ Missing |
-| **Existing assets** | `fetch_context` in `TraceEventType` only |
-| **Gap** | Vector store, session memory, Memora integration surface |
-| **Priority** | Year 2 |
+| **Status** | ⚠️ Partial (Sprint 11 — recall + capture shipped) |
+| **Existing assets** | [`captureMemory.ts`](../src/runtime/memory/captureMemory.ts), [`recallContext.ts`](../src/runtime/memory/recallContext.ts), [`MemoryPanel.tsx`](../src/components/memory/MemoryPanel.tsx), `exportMemoryBundle` |
+| **Gap** | Vector embeddings; cross-project memory; Memora network integration |
+| **Priority** | Year 2 tail |
 
 ---
 

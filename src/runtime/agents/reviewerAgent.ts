@@ -18,6 +18,7 @@ function buildReviewPrompt(
   diffSummary: string,
   testSummary: string,
   builderSummary: string,
+  recalledMemory?: string,
 ): string {
   const criteria = node.acceptanceCriteria.length > 0
     ? node.acceptanceCriteria.map(c => `- ${c}`).join('\n')
@@ -37,8 +38,12 @@ ${diffSummary}
 
 Test results:
 ${testSummary}
-
+${recalledMemory ? `\n${recalledMemory}\n` : ''}
 Return a review verdict as JSON.`
+}
+
+export interface RunReviewerOptions {
+  recalledMemory?: string
 }
 
 function formatTestSummary(testResults: TestResult[]): string {
@@ -107,6 +112,7 @@ async function loadUpstreamReviewContext(
 export async function runReviewerForNode(
   node: GraphNode,
   project: Project,
+  options: RunReviewerOptions = {},
 ): Promise<ReviewerOutput> {
   const sessionId = node.assignedSessionId ?? uid('sess')
   const graphState = taskGraphEngine.getState()
@@ -146,7 +152,14 @@ export async function runReviewerForNode(
         { role: 'system', content: REVIEWER_SYSTEM_PROMPT },
         {
           role: 'user',
-          content: buildReviewPrompt(node, project, diffSummary, testSummary, builderSummary),
+          content: buildReviewPrompt(
+            node,
+            project,
+            diffSummary,
+            testSummary,
+            builderSummary,
+            options.recalledMemory,
+          ),
         },
       ],
       jsonMode: true,

@@ -24,6 +24,8 @@ const STORED_TO_ORCHESTRATOR: Record<string, OrchestratorEventType> = {
   blocker_detected: 'blocker_detected',
   blocker_resolved: 'blocker_resolved',
   escalated: 'escalated',
+  memory_recorded: 'memory_recorded',
+  fetch_context: 'fetch_context',
 }
 
 function severity(s: string): OrchestratorEventSeverity {

@@ -3,7 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Circle, ChevronRight, Target } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { planFromGoal } from '../../runtime/mockPlanner'
+import { recallContext } from '../../runtime/memory/recallContext'
 import { orchestratorRuntime } from '../../runtime/orchestratorRuntime'
+import { getLocalStore } from '../../runtime/store'
 import { providerRegistry } from '../../runtime/providers/providerRegistry'
 import { PROVIDER_DEFAULT_MODELS } from '../../runtime/inference/modelRouting'
 import { InferenceError } from '../../runtime/inference/types'
@@ -114,11 +116,25 @@ export function GoalEntryOverlay({ onComplete }: GoalEntryOverlayProps) {
     setPlanningDone(false)
 
     try {
+      let recalledMemory: string | undefined
+      const projects = await getLocalStore().listProjects()
+      if (projects.length > 0) {
+        const latest = [...projects].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0]
+        const recall = await recallContext({
+          projectId: latest.id,
+          agentRole: 'planner',
+          query: trimmed,
+          limit: 5,
+        })
+        recalledMemory = recall.formattedBlock || undefined
+      }
+
       await planFromGoal(trimmed, {
         governanceMode,
         providerId,
         modelId,
         onPhase: phase => setPlanningPhase(phase),
+        recalledMemory,
       })
       setPlanningDone(true)
       await orchestratorRuntime.refreshFromStore()

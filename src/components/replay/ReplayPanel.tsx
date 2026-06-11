@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   ChevronLeft, ChevronRight, SkipBack, SkipForward, X, Coins, Cpu, GitBranch,
@@ -6,12 +7,15 @@ import { useReplay } from '../../hooks/useReplay'
 import { DiffViewer } from '../review/DiffViewer'
 import { Timeline } from '../sessions/Timeline'
 import { GlowButton } from '../shared/GlowButton'
+import { getLocalStore } from '../../runtime/store'
+import type { AgentMemory } from '../../types/graph'
 
 export function ReplayPanel() {
   const {
     isReplayMode,
     loading,
     chain,
+    scope,
     snapshot,
     totalSteps,
     currentIndex,
@@ -29,6 +33,30 @@ export function ReplayPanel() {
   const payload = step?.payload ?? {}
   const tokens = (payload.totalTokens as number) ?? payload.cumulativeTokens ?? snapshot?.cumulativeTokens
   const cost = (payload.costUsd as number) ?? snapshot?.cumulativeCostUsd
+  const [recalledMemories, setRecalledMemories] = useState<AgentMemory[]>([])
+
+  useEffect(() => {
+    if (!step || (step.type !== 'fetch_context' && step.type !== 'memory_recorded')) {
+      setRecalledMemories([])
+      return
+    }
+    const memoryIds = payload.memoryIds as string[] | undefined
+    const memoryId = payload.memoryId as string | undefined
+    const ids = memoryIds ?? (memoryId ? [memoryId] : [])
+    if (ids.length === 0) {
+      setRecalledMemories([])
+      return
+    }
+    const projectId = scope?.projectId
+    if (!projectId) {
+      setRecalledMemories([])
+      return
+    }
+    void (async () => {
+      const list = await getLocalStore().listMemories({ projectId, limit: 500 })
+      setRecalledMemories(list.filter(m => ids.includes(m.id)))
+    })()
+  }, [step?.id, step?.type, payload.memoryId, payload.memoryIds, scope?.projectId])
 
   return (
     <motion.div
@@ -121,6 +149,18 @@ export function ReplayPanel() {
                       </span>
                     )}
                   </div>
+                  {recalledMemories.length > 0 && (
+                    <div className="pt-2 border-t border-white/[0.04] space-y-1">
+                      <div className="text-[9px] font-mono text-violet-500 uppercase tracking-widest">
+                        Recalled memory
+                      </div>
+                      {recalledMemories.map(m => (
+                        <p key={m.id} className="text-[11px] text-slate-400 leading-relaxed">
+                          [{m.memoryType}] {m.content}
+                        </p>
+                      ))}
+                    </div>
+                  )}
                   {chain && chain.tasks.length > 0 && (
                     <div className="pt-2 border-t border-white/[0.04]">
                       <div className="text-[9px] font-mono text-slate-700 uppercase tracking-widest mb-1">Tasks</div>

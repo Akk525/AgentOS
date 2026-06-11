@@ -13,6 +13,8 @@ import type { GovernanceMode } from '../types/graph'
 import { getNodeRole } from './graphWorktree'
 import { taskGraphEngine } from './taskGraphEngine'
 import { orchestratorRuntime } from './orchestratorRuntime'
+import { recallContext } from './memory/recallContext'
+import { resolveEpicId } from './memory/memoryUtils'
 
 export type CoordinatorPausedReason = 'no_workspace' | 'manual_pause' | null
 
@@ -216,10 +218,21 @@ class ExecutionCoordinator {
 
     try {
       const meta = node.metadata as Record<string, unknown>
+      const graphState = taskGraphEngine.getState()
+      const epicId = resolveEpicId(node.id, graphState.nodes)
+      const recall = await recallContext({
+        projectId: project.id,
+        nodeId: node.id,
+        agentRole: role as 'builder' | 'test-writer' | 'reviewer',
+        epicId,
+        sessionId: node.assignedSessionId ?? undefined,
+      })
+
       const opts = {
         repoPath,
         providerId: meta.provider as string | undefined,
         modelId: meta.model as string | undefined,
+        recalledMemory: recall.formattedBlock || undefined,
       }
 
       if (role === 'builder') {
@@ -227,7 +240,9 @@ class ExecutionCoordinator {
       } else if (role === 'test-writer') {
         await runTestWriterForNode(node, project, { repoPath })
       } else if (role === 'reviewer') {
-        const review = await runReviewerForNode(node, project)
+        const review = await runReviewerForNode(node, project, {
+          recalledMemory: recall.formattedBlock || undefined,
+        })
         await orchestratorRuntime.refreshFromStore()
 
         if (shouldAutoActOnReviewerVerdict(project.governanceMode, review.verdict)) {

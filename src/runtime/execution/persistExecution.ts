@@ -10,6 +10,11 @@ import { updateSessionData } from '../sessionStore'
 import { taskGraphEngine } from '../taskGraphEngine'
 import { spawnBuilderFixTask } from './spawnBuilderFixTask'
 import { archiveWorktreeAfterReject, mergeAfterApproval } from './mergeAfterApproval'
+import {
+  captureBuilderMemory,
+  captureReviewMemory,
+  captureTestFailureMemory,
+} from '../memory/captureMemory'
 
 function uid(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
@@ -110,6 +115,14 @@ export async function persistBuilderResult(input: PersistBuilderResultInput): Pr
           }
         : {}),
     },
+  })
+
+  await captureBuilderMemory({
+    project: input.project,
+    node: input.node,
+    summary: input.summary,
+    filesChanged: input.filesChanged,
+    sessionId: input.sessionId,
   })
 
   return existing
@@ -269,6 +282,13 @@ export async function persistTestFailure(input: PersistTestFailureInput): Promis
     upstreamBuilder,
   })
 
+  await captureTestFailureMemory({
+    project,
+    node,
+    failureSummary,
+    sessionId,
+  })
+
   return existing
 }
 
@@ -327,6 +347,17 @@ export async function persistReviewVerdict(input: PersistReviewVerdictInput): Pr
         approved: true,
         mergeOutcome: mergeResult.outcome,
       },
+    })
+
+    const reviewSummary =
+      (input.node.metadata.reviewSummary as string | undefined) ??
+      'Review approved and merged'
+    await captureReviewMemory({
+      project: input.project,
+      node: input.node,
+      summary: reviewSummary,
+      approved: true,
+      sessionId: input.sessionId,
     })
     return
   }

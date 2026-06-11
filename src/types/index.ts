@@ -494,6 +494,8 @@ export type OrchestratorEventType =
   | 'blocker_detected'
   | 'blocker_resolved'
   | 'escalated'
+  | 'memory_recorded'
+  | 'fetch_context'
 
 export type OrchestratorEventSeverity = 'info' | 'warning' | 'success' | 'error'
 

@@ -1,6 +1,6 @@
 use rusqlite::Connection;
 
-pub const SCHEMA_VERSION: i32 = 1;
+pub const SCHEMA_VERSION: i32 = 2;
 
 pub fn migrate(conn: &Connection) -> Result<(), rusqlite::Error> {
     let version: i32 = conn.pragma_query_value(None, "user_version", |row| row.get(0))?;
@@ -77,6 +77,50 @@ pub fn migrate(conn: &Connection) -> Result<(), rusqlite::Error> {
         conn.pragma_update(None, "user_version", &1)?;
     }
 
+    if version < 2 {
+        conn.execute_batch(
+            r#"
+            CREATE TABLE IF NOT EXISTS agent_memories (
+                id              TEXT PRIMARY KEY NOT NULL,
+                project_id      TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+                node_id         TEXT,
+                agent_role      TEXT,
+                memory_type     TEXT NOT NULL,
+                content         TEXT NOT NULL,
+                tags            TEXT NOT NULL DEFAULT '[]',
+                source_event_id TEXT,
+                created_at      TEXT NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_memories_project ON agent_memories(project_id);
+            CREATE INDEX IF NOT EXISTS idx_memories_node ON agent_memories(node_id);
+
+            CREATE VIRTUAL TABLE IF NOT EXISTS agent_memories_fts USING fts5(
+                content,
+                tags,
+                content='agent_memories',
+                content_rowid='rowid'
+            );
+
+            CREATE TRIGGER IF NOT EXISTS agent_memories_ai AFTER INSERT ON agent_memories BEGIN
+                INSERT INTO agent_memories_fts(rowid, content, tags) VALUES (new.rowid, new.content, new.tags);
+            END;
+
+            CREATE TRIGGER IF NOT EXISTS agent_memories_ad AFTER DELETE ON agent_memories BEGIN
+                INSERT INTO agent_memories_fts(agent_memories_fts, rowid, content, tags)
+                VALUES ('delete', old.rowid, old.content, old.tags);
+            END;
+
+            CREATE TRIGGER IF NOT EXISTS agent_memories_au AFTER UPDATE ON agent_memories BEGIN
+                INSERT INTO agent_memories_fts(agent_memories_fts, rowid, content, tags)
+                VALUES ('delete', old.rowid, old.content, old.tags);
+                INSERT INTO agent_memories_fts(rowid, content, tags) VALUES (new.rowid, new.content, new.tags);
+            END;
+            "#,
+        )?;
+        conn.pragma_update(None, "user_version", &2)?;
+    }
+
     Ok(())
 }
 
@@ -109,5 +153,6 @@ mod tests {
         assert!(tables.contains(&"graph_edges".to_string()));
         assert!(tables.contains(&"events".to_string()));
         assert!(tables.contains(&"sessions".to_string()));
+        assert!(tables.contains(&"agent_memories".to_string()));
     }
 }

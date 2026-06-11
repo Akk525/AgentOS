@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Play, GitCommit, CheckCircle2, XCircle, Shield,
-  MessageSquare, AlertTriangle, Cpu, Clock, GitMerge,
+  MessageSquare, AlertTriangle, Cpu, Clock, GitMerge, Brain,
 } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { useOrchestrator } from '../../context/OrchestratorContext'
@@ -33,6 +33,8 @@ const TYPE_CONFIG: Record<OrchestratorEventType, {
   blocker_detected: { icon: <XCircle size={9} />,        label: 'blocker'      },
   blocker_resolved: { icon: <CheckCircle2 size={9} />,   label: 'resolved'     },
   escalated:        { icon: <AlertTriangle size={9} />,  label: 'escalated'    },
+  memory_recorded:  { icon: <Brain size={9} />,          label: 'memory'       },
+  fetch_context:    { icon: <Brain size={9} />,          label: 'recall'       },
 }
 
 const SEVERITY_COLORS: Record<OrchestratorEventSeverity, { dot: string; text: string; dim: string }> = {

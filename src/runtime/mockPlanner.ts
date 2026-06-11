@@ -15,6 +15,7 @@ export interface PlanFromGoalOptions {
   modelId?: string
   mode?: 'llm' | 'mock'
   onPhase?: (phase: PlanningPhase) => void
+  recalledMemory?: string
 }
 
 export async function planFromGoal(
@@ -42,5 +43,6 @@ export async function planFromGoal(
     providerId: options.providerId,
     modelId: options.modelId,
     onPhase: options.onPhase,
+    recalledMemory: options.recalledMemory,
   })
 }

@@ -1,14 +1,18 @@
 import { invoke } from '@tauri-apps/api/core'
 import type {
+  AgentMemory,
   AppendEventInput,
   CreateProjectInput,
   GraphEdge,
   GraphNode,
+  ListMemoriesOptions,
   Project,
   ProjectWithGraph,
+  SearchMemoriesOptions,
   StoredEvent,
   StoredSession,
   UpdateProjectInput,
+  UpsertMemoryInput,
 } from '../../types/graph'
 import type {
   ListEventsOptions,
@@ -71,6 +75,20 @@ function mapEvent(raw: Record<string, unknown>): StoredEvent {
     severity: raw.severity as StoredEvent['severity'],
     payload: (raw.payload as Record<string, unknown>) ?? {},
     timestamp: raw.timestamp as string,
+  }
+}
+
+function mapMemory(raw: Record<string, unknown>): AgentMemory {
+  return {
+    id: raw.id as string,
+    projectId: raw.projectId as string,
+    nodeId: (raw.nodeId as string | null) ?? null,
+    agentRole: (raw.agentRole as string | null) ?? null,
+    memoryType: raw.memoryType as AgentMemory['memoryType'],
+    content: raw.content as string,
+    tags: (raw.tags as string[]) ?? [],
+    sourceEventId: (raw.sourceEventId as string | null) ?? null,
+    createdAt: raw.createdAt as string,
   }
 }
 
@@ -218,5 +236,49 @@ export const tauriLocalStore: LocalStore = {
   async listSessions(projectId: string): Promise<StoredSession[]> {
     const rows = await invoke<Record<string, unknown>[]>('store_list_sessions', { projectId })
     return rows.map(mapSession)
+  },
+
+  async upsertMemory(input: UpsertMemoryInput): Promise<AgentMemory> {
+    const raw = await invoke<Record<string, unknown>>('store_upsert_memory', {
+      input: {
+        id: input.id,
+        projectId: input.projectId,
+        nodeId: input.nodeId,
+        agentRole: input.agentRole,
+        memoryType: input.memoryType,
+        content: input.content,
+        tags: input.tags,
+        sourceEventId: input.sourceEventId,
+      },
+    })
+    return mapMemory(raw)
+  },
+
+  async listMemories(options: ListMemoriesOptions): Promise<AgentMemory[]> {
+    const rows = await invoke<Record<string, unknown>[]>('store_list_memories', {
+      input: {
+        projectId: options.projectId,
+        memoryType: options.memoryType,
+        agentRole: options.agentRole,
+        limit: options.limit,
+        offset: options.offset,
+      },
+    })
+    return rows.map(mapMemory)
+  },
+
+  async searchMemories(options: SearchMemoriesOptions): Promise<AgentMemory[]> {
+    const rows = await invoke<Record<string, unknown>[]>('store_search_memories', {
+      input: {
+        projectId: options.projectId,
+        query: options.query,
+        limit: options.limit,
+      },
+    })
+    return rows.map(mapMemory)
+  },
+
+  async deleteMemory(memoryId: string): Promise<void> {
+    await invoke('store_delete_memory', { memoryId })
   },
 }

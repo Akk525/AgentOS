@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, GitBranch, TestTube, FileCode, AlertTriangle, Play, Coins, ChevronRight } from 'lucide-react'
+import { ArrowLeft, GitBranch, TestTube, FileCode, AlertTriangle, Play, Coins, ChevronRight, Brain } from 'lucide-react'
 import { StatusPill } from '../shared/StatusPill'
 import { RuntimeBadge } from '../shared/RuntimeBadge'
 import { AgentAvatar } from '../shared/AgentAvatar'
@@ -21,6 +21,7 @@ import { useGraphTasks } from '../../hooks/useGraphTasks'
 import { useGraphSession } from '../../hooks/useGraphSession'
 import { useReplay } from '../../hooks/useReplay'
 import { getTaskAgentDisplay } from '../../lib/taskAgent'
+import { getLastRecall } from '../../runtime/memory/recallState'
 import type { Task } from '../../types'
 
 interface AgentSessionProps {
@@ -94,6 +95,7 @@ export function AgentSession({ task: propTask, onBack }: AgentSessionProps) {
   }
 
   const isRunning = task.status === 'running' && sessionMode === 'autonomous'
+  const recalledCount = getLastRecall(task.id)
 
   const handlePause = ()                        => setSessionMode('paused')
   const handleResume = ()                       => setSessionMode('autonomous')
@@ -136,6 +138,12 @@ export function AgentSession({ task: propTask, onBack }: AgentSessionProps) {
           <div className="flex items-center gap-2.5 mb-0.5">
             <h1 className="text-sm font-semibold text-slate-100 truncate leading-snug">{task.title}</h1>
             <StatusPill status={task.status} />
+            {recalledCount > 0 && (
+              <span className="text-[9px] font-mono text-violet-400 bg-violet-500/10 px-1.5 py-0.5 rounded border border-violet-500/20 flex items-center gap-1">
+                <Brain size={9} />
+                Recalled {recalledCount}
+              </span>
+            )}
             {!fromStore && (
               <span className="text-[9px] font-mono text-slate-600 bg-white/[0.04] px-1.5 py-0.5 rounded">
                 demo trace

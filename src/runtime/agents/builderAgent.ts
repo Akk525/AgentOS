@@ -21,6 +21,7 @@ function buildUserPrompt(
   node: GraphNode,
   project: Project,
   worktreePath: string,
+  recalledMemory?: string,
 ): string {
   const criteria = node.acceptanceCriteria.length > 0
     ? node.acceptanceCriteria.map(c => `- ${c}`).join('\n')
@@ -35,7 +36,7 @@ Acceptance criteria:
 ${criteria}
 
 Worktree path: ${worktreePath}
-
+${recalledMemory ? `\n${recalledMemory}\n` : ''}
 Implement this task. Return JSON with file changes.`
 }
 
@@ -43,6 +44,7 @@ export interface RunBuilderOptions {
   repoPath: string
   providerId?: string
   modelId?: string
+  recalledMemory?: string
 }
 
 export async function runBuilderForNode(
@@ -84,7 +86,7 @@ export async function runBuilderForNode(
   const providerId = options.providerId ?? (meta.provider as string | undefined)
   const modelId = options.modelId ?? (meta.model as string | undefined)
 
-  const userPrompt = buildUserPrompt(node, project, worktreePath)
+  const userPrompt = buildUserPrompt(node, project, worktreePath, options.recalledMemory)
   const inferenceRequest = {
     messages: [
       { role: 'system' as const, content: BUILDER_SYSTEM_PROMPT },

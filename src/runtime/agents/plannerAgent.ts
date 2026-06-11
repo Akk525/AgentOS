@@ -11,14 +11,19 @@ export interface PlannerAgentOptions {
   providerId: string
   modelId: string
   onPhase?: (phase: PlanningPhase) => void
+  recalledMemory?: string
 }
 
-function buildUserPrompt(goalText: string, governanceMode: GovernanceMode): string {
+function buildUserPrompt(
+  goalText: string,
+  governanceMode: GovernanceMode,
+  recalledMemory?: string,
+): string {
   return `Project goal:
 ${goalText.trim()}
 
 Governance mode: ${governanceMode}
-
+${recalledMemory ? `\n${recalledMemory}\n` : ''}
 Decompose this goal into an executable task graph. Return JSON matching the schema.`
 }
 
@@ -36,7 +41,7 @@ export async function planFromGoalWithLlm(
   const governanceMode = options.governanceMode ?? 'assisted'
   options.onPhase?.('calling_provider')
 
-  const userPrompt = buildUserPrompt(trimmed, governanceMode)
+  const userPrompt = buildUserPrompt(trimmed, governanceMode, options.recalledMemory)
   let result = await completeForRole(
     'planner',
     {

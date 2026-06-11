@@ -1,5 +1,5 @@
 use crate::db::store::{
-    DbStore, EventRow, GraphEdgeRow, GraphNodeRow, ProjectRow, SessionRow, StoreStatus,
+    DbStore, EventRow, GraphEdgeRow, GraphNodeRow, MemoryRow, ProjectRow, SessionRow, StoreStatus,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::OnceLock;
@@ -216,6 +216,51 @@ pub struct ListEventsInput {
     pub order: Option<String>,
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentMemoryDto {
+    pub id: String,
+    pub project_id: String,
+    pub node_id: Option<String>,
+    pub agent_role: Option<String>,
+    pub memory_type: String,
+    pub content: String,
+    pub tags: Vec<String>,
+    pub source_event_id: Option<String>,
+    pub created_at: String,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpsertMemoryInput {
+    pub id: Option<String>,
+    pub project_id: String,
+    pub node_id: Option<String>,
+    pub agent_role: Option<String>,
+    pub memory_type: String,
+    pub content: String,
+    pub tags: Option<Vec<String>>,
+    pub source_event_id: Option<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ListMemoriesInput {
+    pub project_id: String,
+    pub memory_type: Option<String>,
+    pub agent_role: Option<String>,
+    pub limit: Option<u32>,
+    pub offset: Option<u32>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SearchMemoriesInput {
+    pub project_id: String,
+    pub query: String,
+    pub limit: Option<u32>,
+}
+
 // ── Mappers ──────────────────────────────────────────────────────────────────
 
 fn project_dto(row: ProjectRow) -> ProjectDto {
@@ -285,6 +330,21 @@ fn session_dto(row: SessionRow) -> Result<StoredSessionDto, String> {
         data,
         created_at: row.created_at,
         updated_at: row.updated_at,
+    })
+}
+
+fn memory_dto(row: MemoryRow) -> Result<AgentMemoryDto, String> {
+    let tags: Vec<String> = serde_json::from_str(&row.tags).unwrap_or_default();
+    Ok(AgentMemoryDto {
+        id: row.id,
+        project_id: row.project_id,
+        node_id: row.node_id,
+        agent_role: row.agent_role,
+        memory_type: row.memory_type,
+        content: row.content,
+        tags,
+        source_event_id: row.source_event_id,
+        created_at: row.created_at,
     })
 }
 
@@ -502,4 +562,53 @@ pub fn store_upsert_session(input: UpsertSessionInput) -> Result<StoredSessionDt
 pub fn store_list_sessions(project_id: String) -> Result<Vec<StoredSessionDto>, String> {
     let rows = db()?.list_sessions(&project_id)?;
     rows.into_iter().map(session_dto).collect()
+}
+
+#[tauri::command]
+pub fn store_upsert_memory(input: UpsertMemoryInput) -> Result<AgentMemoryDto, String> {
+    let now = now_iso();
+    let id = input.id.unwrap_or_else(|| uid("mem"));
+    let tags = serde_json::to_string(&input.tags.unwrap_or_default())
+        .map_err(|e| e.to_string())?;
+
+    let row = MemoryRow {
+        id: id.clone(),
+        project_id: input.project_id,
+        node_id: input.node_id,
+        agent_role: input.agent_role,
+        memory_type: input.memory_type,
+        content: input.content,
+        tags,
+        source_event_id: input.source_event_id,
+        created_at: now,
+    };
+
+    db()?.upsert_memory(&row)?;
+    memory_dto(row)
+}
+
+#[tauri::command]
+pub fn store_list_memories(input: ListMemoriesInput) -> Result<Vec<AgentMemoryDto>, String> {
+    let limit = input.limit.unwrap_or(100);
+    let offset = input.offset.unwrap_or(0);
+    let rows = db()?.list_memories(
+        &input.project_id,
+        input.memory_type.as_deref(),
+        input.agent_role.as_deref(),
+        limit,
+        offset,
+    )?;
+    rows.into_iter().map(memory_dto).collect()
+}
+
+#[tauri::command]
+pub fn store_search_memories(input: SearchMemoriesInput) -> Result<Vec<AgentMemoryDto>, String> {
+    let limit = input.limit.unwrap_or(20);
+    let rows = db()?.search_memories(&input.project_id, &input.query, limit)?;
+    rows.into_iter().map(memory_dto).collect()
+}
+
+#[tauri::command]
+pub fn store_delete_memory(memory_id: String) -> Result<(), String> {
+    db()?.delete_memory(&memory_id)
 }

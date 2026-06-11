@@ -5,6 +5,7 @@ import { getLocalStore } from '../store'
 import { ensureTaskSessionShells } from '../sessionStore'
 import { taskGraphEngine } from '../taskGraphEngine'
 import type { PlannerOutput } from './planSchema'
+import { capturePlannerMemory } from '../memory/captureMemory'
 
 const PLANNER_NAME = 'Lyra'
 const WORKSPACE_NAME = 'local'
@@ -129,6 +130,12 @@ export async function persistPlan(
   }
 
   await ensureTaskSessionShells(project.id, taskIds)
+
+  await capturePlannerMemory({
+    project,
+    epicTitles: [plan.epic.title],
+    goalText: trimmed,
+  })
 
   return project
 }

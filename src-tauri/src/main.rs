@@ -30,6 +30,10 @@ fn main() {
             store_commands::store_list_events,
             store_commands::store_upsert_session,
             store_commands::store_list_sessions,
+            store_commands::store_upsert_memory,
+            store_commands::store_list_memories,
+            store_commands::store_search_memories,
+            store_commands::store_delete_memory,
         ])
         .run(tauri::generate_context!())
         .expect("error while running AgentOS");

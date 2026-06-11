@@ -1,13 +1,17 @@
 import type {
+  AgentMemory,
   AppendEventInput,
   CreateProjectInput,
   GraphEdge,
   GraphNode,
+  ListMemoriesOptions,
   Project,
   ProjectWithGraph,
+  SearchMemoriesOptions,
   StoredEvent,
   StoredSession,
   UpdateProjectInput,
+  UpsertMemoryInput,
 } from '../../types/graph'
 import type {
   ListEventsOptions,
@@ -24,6 +28,7 @@ const nodes = new Map<string, GraphNode>()
 const edges = new Map<string, GraphEdge>()
 const events: StoredEvent[] = []
 const sessions = new Map<string, StoredSession>()
+const memories = new Map<string, AgentMemory>()
 
 function uid(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
@@ -70,7 +75,7 @@ export const memoryLocalStore: LocalStore = {
     return {
       available: true,
       dbPath: '(memory)',
-      schemaVersion: 1,
+      schemaVersion: 2,
       isEmpty: projects.size === 0,
     }
   },
@@ -196,6 +201,52 @@ export const memoryLocalStore: LocalStore = {
   async listSessions(projectId: string): Promise<StoredSession[]> {
     return [...sessions.values()].filter(s => s.projectId === projectId)
   },
+
+  async upsertMemory(input: UpsertMemoryInput): Promise<AgentMemory> {
+    const ts = now()
+    const existing = input.id ? memories.get(input.id) : undefined
+    const memory: AgentMemory = {
+      id: input.id ?? uid('mem'),
+      projectId: input.projectId,
+      nodeId: input.nodeId ?? null,
+      agentRole: input.agentRole ?? null,
+      memoryType: input.memoryType,
+      content: input.content,
+      tags: input.tags ?? [],
+      sourceEventId: input.sourceEventId ?? null,
+      createdAt: existing?.createdAt ?? ts,
+    }
+    memories.set(memory.id, memory)
+    return memory
+  },
+
+  async listMemories(options: ListMemoriesOptions): Promise<AgentMemory[]> {
+    const { projectId, memoryType, agentRole, limit = 100, offset = 0 } = options
+    let list = [...memories.values()].filter(m => m.projectId === projectId)
+    if (memoryType) list = list.filter(m => m.memoryType === memoryType)
+    if (agentRole) list = list.filter(m => m.agentRole === agentRole)
+    list.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    return list.slice(offset, offset + limit)
+  },
+
+  async searchMemories(options: SearchMemoriesOptions): Promise<AgentMemory[]> {
+    const { projectId, query, limit = 20 } = options
+    const terms = query.toLowerCase().split(/\s+/).filter(Boolean)
+    if (terms.length === 0) {
+      return this.listMemories({ projectId, limit })
+    }
+    const list = [...memories.values()].filter(m => {
+      if (m.projectId !== projectId) return false
+      const haystack = `${m.content} ${m.tags.join(' ')}`.toLowerCase()
+      return terms.some(term => haystack.includes(term))
+    })
+    list.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    return list.slice(0, limit)
+  },
+
+  async deleteMemory(memoryId: string): Promise<void> {
+    memories.delete(memoryId)
+  },
 }
 
 export function resetMemoryLocalStore(): void {
@@ -204,4 +255,5 @@ export function resetMemoryLocalStore(): void {
   edges.clear()
   events.length = 0
   sessions.clear()
+  memories.clear()
 }

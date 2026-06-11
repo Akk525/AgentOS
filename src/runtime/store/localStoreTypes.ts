@@ -1,13 +1,17 @@
 import type {
+  AgentMemory,
   AppendEventInput,
   CreateProjectInput,
   GraphEdge,
   GraphNode,
+  ListMemoriesOptions,
   Project,
   ProjectWithGraph,
+  SearchMemoriesOptions,
   StoredEvent,
   StoredSession,
   UpdateProjectInput,
+  UpsertMemoryInput,
 } from '../../types/graph'
 
 export interface StoreInitResult {
@@ -80,4 +84,8 @@ export interface LocalStore {
   listEvents(options?: ListEventsOptions): Promise<StoredEvent[]>
   upsertSession(input: UpsertSessionInput): Promise<StoredSession>
   listSessions(projectId: string): Promise<StoredSession[]>
+  upsertMemory(input: UpsertMemoryInput): Promise<AgentMemory>
+  listMemories(options: ListMemoriesOptions): Promise<AgentMemory[]>
+  searchMemories(options: SearchMemoriesOptions): Promise<AgentMemory[]>
+  deleteMemory(memoryId: string): Promise<void>
 }

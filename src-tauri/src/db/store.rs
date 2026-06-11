@@ -85,6 +85,19 @@ pub struct SessionRow {
     pub updated_at: String,
 }
 
+#[derive(Debug, Clone)]
+pub struct MemoryRow {
+    pub id: String,
+    pub project_id: String,
+    pub node_id: Option<String>,
+    pub agent_role: Option<String>,
+    pub memory_type: String,
+    pub content: String,
+    pub tags: String,
+    pub source_event_id: Option<String>,
+    pub created_at: String,
+}
+
 impl DbStore {
     pub fn open(db_path: PathBuf) -> Result<Self, String> {
         if let Some(parent) = db_path.parent() {
@@ -474,6 +487,135 @@ impl DbStore {
 
         Ok(rows)
     }
+
+    pub fn upsert_memory(&self, memory: &MemoryRow) -> Result<(), String> {
+        let conn = self.conn.lock().map_err(|e| e.to_string())?;
+        conn.execute(
+            r#"INSERT INTO agent_memories (id, project_id, node_id, agent_role, memory_type, content, tags, source_event_id, created_at)
+               VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
+               ON CONFLICT(id) DO UPDATE SET
+                 node_id = excluded.node_id,
+                 agent_role = excluded.agent_role,
+                 memory_type = excluded.memory_type,
+                 content = excluded.content,
+                 tags = excluded.tags,
+                 source_event_id = excluded.source_event_id"#,
+            params![
+                memory.id,
+                memory.project_id,
+                memory.node_id,
+                memory.agent_role,
+                memory.memory_type,
+                memory.content,
+                memory.tags,
+                memory.source_event_id,
+                memory.created_at,
+            ],
+        )
+        .map_err(|e| e.to_string())?;
+        Ok(())
+    }
+
+    pub fn list_memories(
+        &self,
+        project_id: &str,
+        memory_type: Option<&str>,
+        agent_role: Option<&str>,
+        limit: u32,
+        offset: u32,
+    ) -> Result<Vec<MemoryRow>, String> {
+        let conn = self.conn.lock().map_err(|e| e.to_string())?;
+        let mut sql = String::from(
+            "SELECT id, project_id, node_id, agent_role, memory_type, content, tags, source_event_id, created_at FROM agent_memories WHERE project_id = ?1",
+        );
+        let mut param_values: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
+        param_values.push(Box::new(project_id.to_string()));
+
+        if let Some(mt) = memory_type {
+            sql.push_str(&format!(" AND memory_type = ?{}", param_values.len() + 1));
+            param_values.push(Box::new(mt.to_string()));
+        }
+        if let Some(role) = agent_role {
+            sql.push_str(&format!(" AND agent_role = ?{}", param_values.len() + 1));
+            param_values.push(Box::new(role.to_string()));
+        }
+
+        sql.push_str(&format!(
+            " ORDER BY created_at DESC LIMIT ?{} OFFSET ?{}",
+            param_values.len() + 1,
+            param_values.len() + 2
+        ));
+        param_values.push(Box::new(limit));
+        param_values.push(Box::new(offset));
+
+        let params_ref: Vec<&dyn rusqlite::types::ToSql> =
+            param_values.iter().map(|p| p.as_ref()).collect();
+        let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
+        let mapped = stmt
+            .query_map(params_ref.as_slice(), map_memory)
+            .map_err(|e| e.to_string())?;
+        Ok(mapped.filter_map(|r| r.ok()).collect())
+    }
+
+    pub fn search_memories(
+        &self,
+        project_id: &str,
+        query: &str,
+        limit: u32,
+    ) -> Result<Vec<MemoryRow>, String> {
+        let conn = self.conn.lock().map_err(|e| e.to_string())?;
+        let fts_query = build_fts_query(query);
+
+        if fts_query.is_empty() {
+            return self.list_memories(project_id, None, None, limit, 0);
+        }
+
+        let sql = r#"
+            SELECT m.id, m.project_id, m.node_id, m.agent_role, m.memory_type, m.content, m.tags, m.source_event_id, m.created_at
+            FROM agent_memories m
+            JOIN agent_memories_fts fts ON m.rowid = fts.rowid
+            WHERE m.project_id = ?1 AND agent_memories_fts MATCH ?2
+            ORDER BY rank
+            LIMIT ?3
+        "#;
+
+        let mut stmt = conn.prepare(sql).map_err(|e| e.to_string())?;
+        let mapped = stmt
+            .query_map(params![project_id, fts_query, limit], map_memory)
+            .map_err(|e| e.to_string())?;
+        Ok(mapped.filter_map(|r| r.ok()).collect())
+    }
+
+    pub fn delete_memory(&self, memory_id: &str) -> Result<(), String> {
+        let conn = self.conn.lock().map_err(|e| e.to_string())?;
+        conn.execute("DELETE FROM agent_memories WHERE id = ?1", params![memory_id])
+            .map_err(|e| e.to_string())?;
+        Ok(())
+    }
+
+}
+
+fn build_fts_query(query: &str) -> String {
+    query
+        .split_whitespace()
+        .filter(|w| !w.is_empty())
+        .map(|w| format!("\"{}\"", w.replace('"', "")))
+        .collect::<Vec<_>>()
+        .join(" OR ")
+}
+
+fn map_memory(row: &rusqlite::Row<'_>) -> rusqlite::Result<MemoryRow> {
+    Ok(MemoryRow {
+        id: row.get(0)?,
+        project_id: row.get(1)?,
+        node_id: row.get(2)?,
+        agent_role: row.get(3)?,
+        memory_type: row.get(4)?,
+        content: row.get(5)?,
+        tags: row.get(6)?,
+        source_event_id: row.get(7)?,
+        created_at: row.get(8)?,
+    })
 }
 
 fn count_table(conn: &Connection, table: &str) -> Result<u32, String> {

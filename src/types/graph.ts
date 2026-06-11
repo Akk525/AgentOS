@@ -97,3 +97,47 @@ export interface AppendEventInput {
   severity?: StoredEventSeverity
   payload?: Record<string, unknown>
 }
+
+export type AgentMemoryType =
+  | 'decision'
+  | 'pattern'
+  | 'bug_fix'
+  | 'convention'
+  | 'review_note'
+
+export interface AgentMemory {
+  id: string
+  projectId: string
+  nodeId: string | null
+  agentRole: string | null
+  memoryType: AgentMemoryType
+  content: string
+  tags: string[]
+  sourceEventId: string | null
+  createdAt: string
+}
+
+export interface UpsertMemoryInput {
+  id?: string
+  projectId: string
+  nodeId?: string | null
+  agentRole?: string | null
+  memoryType: AgentMemoryType
+  content: string
+  tags?: string[]
+  sourceEventId?: string | null
+}
+
+export interface ListMemoriesOptions {
+  projectId: string
+  memoryType?: AgentMemoryType
+  agentRole?: string
+  limit?: number
+  offset?: number
+}
+
+export interface SearchMemoriesOptions {
+  projectId: string
+  query: string
+  limit?: number
+}

@@ -238,6 +238,27 @@ What shipped:
 - Orchestrator timeline tab includes “Replay feature” for epic scope
 - OpenAI/Anthropic builder streaming when provider supports `stream()`
 
+### Sprint 11 — Agent memory (complete)
+
+**Shipped:** Persistent per-project memory store, recall-at-task-start, Memora-ready export.
+
+| What shipped | Where |
+|--------------|-------|
+| `agent_memories` schema v2 + FTS search | `schema.rs`, `store.rs` |
+| Capture + recall API | `src/runtime/memory/captureMemory.ts`, `recallContext.ts` |
+| Agent prompt injection | `builderAgent.ts`, `reviewerAgent.ts`, `plannerAgent.ts` |
+| `fetch_context` runtime emission | `recallContext.ts`, session traces |
+| Memory panel UI | `MemoryPanel.tsx`, Orchestration Memory tab |
+| Memora export | `exportMemoryBundle.ts` |
+| *(stretch)* LLM memory distillation | `captureMemory.ts` `distillWithLlm()` |
+| *(stretch)* Recall in Replay panel | `ReplayPanel.tsx` |
+
+**Behaviour today:**
+- Agents recall prior task decisions when starting work on related nodes
+- Memories captured automatically after build/review/test-failure/plan milestones
+- Memory searchable in Observatory Memory tab; exportable as JSON bundle
+- Replay shows recalled memory content at `fetch_context` steps
+
 ### Deliverables
 
 | Deliverable | Pillars | Status | Key work |
@@ -308,7 +329,7 @@ Phase A complete (persistence + graph engine).
 
 ## Phase C — Year 2 Success (~12 → 24 months)
 
-**Status:** Current (Sprint 10 — replay engine shipped)
+**Status:** Current (Sprint 11 — agent memory shipped)
 
 **Goal:** Maintain large repositories over months with replay, memory, and minimal supervision.
 
@@ -326,7 +347,7 @@ Maps to PRD Year 2 success criteria:
 | Deliverable | Pillars | Key work |
 |-------------|---------|----------|
 | Replay engine | 6 | **Done (Sprint 10)** — Step-through UI from event log + session traces; branch exploration deferred |
-| Agent memory | 11 | Per-agent local memory; cross-task recall; Memora integration API |
+| Agent memory | 11 | **Done (Sprint 11)** — SQLite memory store, recall injection, export bundle; vector search deferred |
 | Skills executor | 10 | Load SKILL.md-style skills; bind to agents at assignment |
 | Observatory consolidation | 15 | Unified dashboard; graph-centric navigation; replay + memory panels |
 | Scale hardening | 2, 3, 4 | Concurrent sessions; worktree cleanup; graph performance |
