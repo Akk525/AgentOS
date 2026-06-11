@@ -265,10 +265,10 @@ See [ROADMAP.md](ROADMAP.md) for the full phased plan. Critical path:
 
 1. ~~**Persistence** (Pillar 14) — SQLite via Tauri~~ **Done (Sprint 1)**
 2. ~~**Task Graph Engine** (Pillar 2) — canonical store + executor~~ **Done (Sprint 2)**
-3. **Goal entry** (Pillar 1) — natural language → create project + plan ← **current**
-4. **Multi-Model Runtime** (Pillar 9) — streaming inference
-5. **Agent Organization** (Pillar 3) — real planner/builder/reviewer loop
-6. **Governance + Gates** (Pillars 7, 8) — merge approval
-7. **Observatory wiring** (Pillar 15) — replace remaining mock data (Dashboard, Sessions)
+3. ~~**Goal entry** (Pillar 1) — natural language → create project + plan~~ **Done (Sprint 3)**
+4. ~~**Observatory wiring** (Pillar 15) — Dashboard, Sessions, orchestrator on graph~~ **Done (Sprint 3b–4)**
+5. **Multi-Model Runtime** (Pillar 9) — streaming inference ← **current**
+6. **Agent Organization** (Pillar 3) — real planner/builder/reviewer loop
+7. **Governance + Gates** (Pillars 7, 8) — merge approval
 
 Year 2: Replay (6), Memory (11), Skills executor (10).

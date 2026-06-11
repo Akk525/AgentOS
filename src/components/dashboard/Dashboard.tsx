@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { CheckCircle2, Radio, Timer, AlertTriangle, TrendingUp, ArrowRight, Coins } from 'lucide-react'
 import { GlassPanel } from '../shared/GlassPanel'
@@ -6,6 +7,7 @@ import { GlowButton } from '../shared/GlowButton'
 import { AgentAvatar } from '../shared/AgentAvatar'
 import { RuntimeBadge } from '../shared/RuntimeBadge'
 import { mockAgents } from '../../data/mockAgents'
+import { useOrchestrator } from '../../context/OrchestratorContext'
 import { useGraphTasks } from '../../hooks/useGraphTasks'
 import { getTaskAgentDisplay } from '../../lib/taskAgent'
 import type { View } from '../../App'
@@ -15,21 +17,6 @@ interface DashboardProps {
   onViewChange: (view: View) => void
   onTaskClick: (task: Task) => void
 }
-
-const metrics = [
-  { label: 'Completed today',  value: '12', delta: '+4',    icon: <CheckCircle2 size={15} />, accent: 'text-emerald-400', glow: 'shadow-[inset_0_0_40px_rgba(52,211,153,0.04)]' },
-  { label: 'Active sessions',  value: '1',  delta: '',      icon: <Radio size={15} />,        accent: 'text-cyan-400',    glow: 'shadow-[inset_0_0_40px_rgba(34,211,238,0.04)]' },
-  { label: 'Avg runtime',      value: '11m', delta: '-2m',  icon: <Timer size={15} />,        accent: 'text-violet-400',  glow: '' },
-  { label: 'Needs attention',  value: '2',  delta: '',      icon: <AlertTriangle size={15} />,accent: 'text-amber-400',   glow: '' },
-]
-
-const recentActivity = [
-  { time: '10:15', type: 'running',  text: 'Debugger is working on auth race condition' },
-  { time: '08:21', type: 'review',   text: 'Billing tests ready for review — 47 passing' },
-  { time: '07:09', type: 'done',     text: 'PR review complete — 1 finding, no blockers' },
-  { time: '06:55', type: 'failed',   text: 'Architecture task failed — context overflow' },
-  { time: '06:30', type: 'changes',  text: 'DB refactor returned — 3 tests failing' },
-]
 
 const activityAccent: Record<string, string> = {
   running: 'text-cyan-400',
@@ -45,6 +32,19 @@ const activityDot: Record<string, string> = {
   done:    'bg-emerald-500',
   failed:  'bg-crimson-500',
   changes: 'bg-orange-400',
+  info: 'bg-slate-500',
+}
+
+function formatMetricRuntime(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`
+  return `${Math.round(seconds / 60)}m`
+}
+
+function activityTypeFromSeverity(severity?: string): string {
+  if (severity === 'success') return 'done'
+  if (severity === 'error') return 'failed'
+  if (severity === 'warning') return 'review'
+  return 'running'
 }
 
 const stagger = {
@@ -57,9 +57,35 @@ const fadeUp = {
 
 export function Dashboard({ onViewChange, onTaskClick }: DashboardProps) {
   const { tasks } = useGraphTasks()
+  const { timeline } = useOrchestrator()
   const runningTasks = tasks.filter(t => t.status === 'running')
   const reviewTasks  = tasks.filter(t => t.status === 'review')
   const activeAgents = mockAgents.filter(a => a.status === 'running')
+
+  const completedCount = tasks.filter(t => t.status === 'done').length
+  const needsAttention = tasks.filter(t => t.status === 'review' || t.status === 'needs_changes').length
+  const runtimeSamples = tasks
+    .filter(t => t.runtimeSeconds !== undefined && (t.status === 'done' || t.status === 'running'))
+    .map(t => t.runtimeSeconds as number)
+  const avgRuntime = runtimeSamples.length > 0
+    ? formatMetricRuntime(Math.round(runtimeSamples.reduce((a, b) => a + b, 0) / runtimeSamples.length))
+    : '—'
+
+  const metrics = useMemo(() => [
+    { label: 'Completed', value: String(completedCount), delta: '', icon: <CheckCircle2 size={15} />, accent: 'text-emerald-400', glow: 'shadow-[inset_0_0_40px_rgba(52,211,153,0.04)]' },
+    { label: 'Active sessions', value: String(runningTasks.length), delta: '', icon: <Radio size={15} />, accent: 'text-cyan-400', glow: 'shadow-[inset_0_0_40px_rgba(34,211,238,0.04)]' },
+    { label: 'Avg runtime', value: avgRuntime, delta: '', icon: <Timer size={15} />, accent: 'text-violet-400', glow: '' },
+    { label: 'Needs attention', value: String(needsAttention), delta: '', icon: <AlertTriangle size={15} />, accent: 'text-amber-400', glow: '' },
+  ], [completedCount, runningTasks.length, avgRuntime, needsAttention])
+
+  const recentActivity = useMemo(
+    () => timeline.slice(0, 5).map(event => ({
+      time: new Date(event.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      type: activityTypeFromSeverity(event.severity),
+      text: event.message,
+    })),
+    [timeline],
+  )
 
   return (
     <div className="h-full overflow-y-auto scrollbar-thin px-6 py-5 space-y-5">
@@ -230,6 +256,9 @@ export function Dashboard({ onViewChange, onTaskClick }: DashboardProps) {
           <GlassPanel className="p-4">
             <h2 className="text-xs font-semibold text-slate-400 mb-3">Activity</h2>
             <div className="space-y-3">
+              {recentActivity.length === 0 && (
+                <div className="text-[11px] text-slate-700 font-mono">No recent activity</div>
+              )}
               {recentActivity.map((a, i) => (
                 <div key={i} className="flex items-start gap-2.5">
                   <div className="flex-shrink-0 mt-1 flex flex-col items-center gap-1">

@@ -4,17 +4,23 @@ import { GoalEntryOverlay } from './GoalEntryOverlay'
 import type { View } from '../../App'
 
 interface GoalEntryGateProps {
+  forceOpen?: boolean
+  onClose?: () => void
   onViewChange: (view: View) => void
 }
 
-export function GoalEntryGate({ onViewChange }: GoalEntryGateProps) {
+export function GoalEntryGate({ forceOpen = false, onClose, onViewChange }: GoalEntryGateProps) {
   const { needsGoalEntry } = useTaskGraph()
+  const show = needsGoalEntry || forceOpen
 
   return (
     <AnimatePresence>
-      {needsGoalEntry && (
+      {show && (
         <GoalEntryOverlay
-          onComplete={() => onViewChange('orchestration')}
+          onComplete={() => {
+            onClose?.()
+            onViewChange('orchestration')
+          }}
         />
       )}
     </AnimatePresence>

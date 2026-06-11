@@ -6,7 +6,7 @@ import type { View } from '../../App'
 
 interface TopBarProps {
   activeView: View
-  onNewTask: () => void
+  onNewProject: () => void
 }
 
 const breadcrumbLabels: Record<string, string> = {
@@ -20,7 +20,7 @@ const breadcrumbLabels: Record<string, string> = {
   settings: 'Settings',
 }
 
-export function TopBar({ activeView, onNewTask }: TopBarProps) {
+export function TopBar({ activeView, onNewProject }: TopBarProps) {
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchValue, setSearchValue] = useState('')
 
@@ -87,9 +87,9 @@ export function TopBar({ activeView, onNewTask }: TopBarProps) {
 
         <div className="w-px h-5 bg-white/[0.08]" />
 
-        {/* New Task */}
-        <GlowButton variant="primary" size="sm" icon={<Plus size={14} />} onClick={onNewTask}>
-          New Task
+        {/* New Project */}
+        <GlowButton variant="primary" size="sm" icon={<Plus size={14} />} onClick={onNewProject}>
+          New Project
         </GlowButton>
       </div>
     </div>

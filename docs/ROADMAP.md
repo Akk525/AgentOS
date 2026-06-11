@@ -11,8 +11,8 @@ For current vs target status per pillar, see [GAP_ANALYSIS.md](GAP_ANALYSIS.md).
 | Phase | Horizon | Outcome |
 |-------|---------|---------|
 | **Done** | v0.x – v2.1 | Foundation UI, orchestration shell, desktop bridge, real worktrees/commands |
-| **A — Foundation** | Now → 3 months | Persistence, task graph engine, goal entry |
-| **B — Year 1** | 3 → 12 months | Real agent loop, governance, merge approval, working app |
+| **A — Foundation** | Complete | Persistence, task graph engine, goal entry, graph-backed Observatory |
+| **B — Year 1** | Current → 12 months | Real agent loop, governance, merge approval, working app |
 | **C — Year 2** | 12 → 24 months | Replay, memory, skills executor, scale |
 | **Deferred** | Beyond 24 months | Enterprise, cloud runners, remote execution |
 
@@ -41,9 +41,9 @@ What shipped:
 
 ---
 
-## Phase A — Foundation (Current → ~3 months)
+## Phase A — Foundation (Complete)
 
-**Status:** Current (Sprint 2 complete — TaskGraphEngine + projections)
+**Status:** Complete (Sprint 4 tail — graph-backed Observatory)
 
 **Goal:** Establish the task graph as source of truth and durable local storage. Replace disconnected mock data with a unified data layer.
 
@@ -67,8 +67,6 @@ What shipped:
 - Browser (`npm run dev:web`): in-memory fallback, dismissible banner; no SQLite
 - Kanban and Plan views read from graph; sessions/reviews still mock
 
-**Next sprint:** Goal entry flow; Dashboard/Session graph projections; orchestrator session hydration.
-
 ### Sprint 2 — TaskGraphEngine + projections (complete)
 
 **Shipped:** Canonical graph engine, demo seed, Kanban/Plan projections, durable timeline.
@@ -85,6 +83,40 @@ What shipped:
 | Timeline hydrated + dual-write from orchestrator | `orchestratorRuntime.ts` |
 | In-memory `LocalStore` for `dev:web` | `memoryLocalStore.ts` |
 
+### Sprint 3 — Goal entry (complete)
+
+**Shipped:** Natural-language goal entry, mock planner stub, empty-store overlay.
+
+| What shipped | Where |
+|--------------|-------|
+| `planFromGoal()` mock planner | `src/runtime/mockPlanner.ts` |
+| `GoalEntryOverlay` + `GoalEntryGate` | `src/components/goal/` |
+| Removed auto demo seed on boot | `src/runtime/taskGraphEngine.ts` |
+| Orchestrator timeline refresh after plan | `src/runtime/orchestratorRuntime.ts` |
+
+### Sprint 3b — Graph projections (complete)
+
+**Shipped:** Dashboard, StatusBar, Sessions wired to `useGraphTasks()`; StoredSession read path.
+
+| What shipped | Where |
+|--------------|-------|
+| `getTaskAgentDisplay()` helper | `src/lib/taskAgent.ts` |
+| `useGraphSession()` hook | `src/hooks/useGraphSession.ts` |
+| Dashboard / StatusBar / AgentSession on graph | `Dashboard.tsx`, `RuntimeStatusBar.tsx`, `AgentSession.tsx` |
+
+### Sprint 4 — Phase A tail (complete)
+
+**Shipped:** Orchestrator sessions from graph, session shell writes, derived dashboard metrics, New Project CTA.
+
+| What shipped | Where |
+|--------------|-------|
+| `graphToActiveSessions()` projection | `src/runtime/orchestrationProjection.ts` |
+| Removed mock orchestrator boot simulation | `src/runtime/orchestratorRuntime.ts` |
+| `ensureTaskSessionShells()` on plan create | `src/runtime/sessionStore.ts`, `mockPlanner.ts` |
+| Dynamic RuntimeGraph layout | `src/components/orchestration/RuntimeGraph.tsx` |
+| Derived dashboard metrics + timeline activity | `src/components/dashboard/Dashboard.tsx` |
+| New Project replaces New Task modal | `TopBar.tsx`, `AppShell.tsx` |
+
 ### Deliverables
 
 | Deliverable | Pillars | Status | Key work |
@@ -92,16 +124,16 @@ What shipped:
 | Local persistence | 14 | **Done (Sprint 1)** | SQLite via Tauri; schema + IPC + boot init |
 | Task Graph Engine | 2 | **Done (Sprint 2)** | `TaskGraphEngine` + executor; demo seed |
 | Append-only event log | 5 | **Done (Sprint 2)** | Timeline hydrated from store; `pushEvent` persists |
-| Goal entry flow | 1, 15 | Upcoming | Natural language project description → triggers planner |
+| Goal entry flow | 1, 15 | **Done (Sprint 3)** | Natural language project description → mock planner stub |
 | PRD alignment docs | 15 | Ongoing | This doc set; README/Landing repositioning |
-| Observatory fixes | 15 | Partial | Kanban + Plan on graph; Dashboard/Sessions still mock |
+| Observatory fixes | 15 | **Done (Sprint 3b–4)** | Graph-backed Dashboard, Sessions, orchestrator sessions |
 
 ### Success criteria
 
-- User enters a goal; system creates a persisted task graph — **upcoming** (demo seed only)
-- Graph executor identifies ready vs blocked nodes — **done** (Runtime diagnostics + engine API)
-- Timeline shows real events from local store (not mock timers) — **done** (hydrate + dual-write; simulation events persist)
-- Page reload preserves project state — **partial** (graph + timeline persist; sessions still mock)
+- User enters a goal; system creates a persisted task graph — **done**
+- Graph executor identifies ready vs blocked nodes — **done**
+- Timeline shows real events from local store (not mock timers) — **done**
+- Page reload preserves project state — **done** (graph + timeline + session shells persist)
 
 ### Dependencies
 
@@ -111,7 +143,7 @@ None — this phase unblocks everything else.
 
 ## Phase B — Year 1 Success (~3 → 12 months)
 
-**Status:** Upcoming
+**Status:** Current
 
 **Goal:** A developer can describe a project, supervise agents building it, review diffs, approve merges, and obtain a working application.
 

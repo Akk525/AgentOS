@@ -1,5 +1,6 @@
 import type { GovernanceMode, Project } from '../types/graph'
 import { getLocalStore } from './store'
+import { ensureTaskSessionShells } from './sessionStore'
 import { taskGraphEngine } from './taskGraphEngine'
 
 const PLANNER_NAME = 'Lyra'
@@ -102,6 +103,8 @@ export async function planFromGoal(
       })
     }
   }
+
+  await ensureTaskSessionShells(project.id, taskIds)
 
   return project
 }

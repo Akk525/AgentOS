@@ -24,7 +24,7 @@ const GROUPS: ShortcutGroup[] = [
     label: 'Sessions',
     rows: [
       { keys: ['⌃', 'S'],   description: 'Spawn new session' },
-      { keys: ['⌘', 'N'],   description: 'Create new task' },
+      { keys: ['⌘', 'N'],   description: 'Create new project' },
     ],
   },
   {

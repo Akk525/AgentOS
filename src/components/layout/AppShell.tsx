@@ -10,7 +10,6 @@ import { SkillsView } from '../skills/SkillsView'
 import { ProvidersView } from '../providers/ProvidersView'
 import { LogsView } from '../logs/LogsView'
 import { SettingsView } from '../settings/SettingsView'
-import { NewTaskModal } from '../tasks/NewTaskModal'
 import { RuntimeStatusBar } from '../runtime/RuntimeStatusBar'
 import { RuntimeProvider } from '../../context/RuntimeContext'
 import { WorkspaceManager } from '../workspace/WorkspaceManager'
@@ -55,7 +54,7 @@ export function AppShell({
   persistenceStatus,
 }: AppShellProps) {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
-  const [newTaskOpen, setNewTaskOpen] = useState(false)
+  const [goalEntryOpen, setGoalEntryOpen] = useState(false)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [mountModalOpen, setMountModalOpen] = useState(false)
   const [spawnOpen, setSpawnOpen] = useState(false)
@@ -78,6 +77,11 @@ export function AppShell({
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault()
         setPaletteOpen(open => !open)
+        return
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'n' && !isInput) {
+        e.preventDefault()
+        setGoalEntryOpen(true)
         return
       }
       if (e.key === '?' && !isInput) {
@@ -155,7 +159,7 @@ export function AppShell({
 
           <div className="flex-1 flex flex-col min-w-0">
             {!isDesktop && <WebFallbackBanner />}
-            <TopBar activeView={activeView} onNewTask={() => setNewTaskOpen(true)} />
+            <TopBar activeView={activeView} onNewProject={() => setGoalEntryOpen(true)} />
 
             <main className="flex-1 overflow-hidden">
               <AnimatePresence mode="wait">
@@ -176,11 +180,6 @@ export function AppShell({
             <RuntimeStatusBar />
           </div>
         </div>
-
-        {/* New Task Modal */}
-        <AnimatePresence>
-          {newTaskOpen && <NewTaskModal onClose={() => setNewTaskOpen(false)} />}
-        </AnimatePresence>
 
         <CommandPalette
           open={paletteOpen}
@@ -207,7 +206,11 @@ export function AppShell({
         <AnimatePresence>
           {isFirstRun && <OnboardingOverlay onComplete={completeOnboarding} />}
         </AnimatePresence>
-        <GoalEntryGate onViewChange={onViewChange} />
+        <GoalEntryGate
+          forceOpen={goalEntryOpen}
+          onClose={() => setGoalEntryOpen(false)}
+          onViewChange={onViewChange}
+        />
       </div>
       </OrchestratorProvider>
       </TaskGraphProvider>
