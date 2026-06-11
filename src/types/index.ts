@@ -479,6 +479,7 @@ export type OrchestratorEventType =
   | 'provider_load'
   | 'session_queued'
   | 'merge_conflict'
+  | 'merge_completed'
   | 'plan_created'
   | 'subtask_assigned'
   | 'blocker_detected'

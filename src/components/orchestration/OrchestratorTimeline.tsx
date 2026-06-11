@@ -24,6 +24,7 @@ const TYPE_CONFIG: Record<OrchestratorEventType, {
   provider_load:    { icon: <Cpu size={9} />,            label: 'provider'     },
   session_queued:   { icon: <Clock size={9} />,          label: 'queued'       },
   merge_conflict:   { icon: <XCircle size={9} />,        label: 'conflict'     },
+  merge_completed:  { icon: <GitMerge size={9} />,       label: 'merged'       },
   plan_created:     { icon: <Play size={9} />,           label: 'plan'         },
   subtask_assigned: { icon: <CheckCircle2 size={9} />,   label: 'assigned'     },
   blocker_detected: { icon: <XCircle size={9} />,        label: 'blocker'      },

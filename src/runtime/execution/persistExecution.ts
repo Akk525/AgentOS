@@ -8,6 +8,7 @@ import { getLocalStore } from '../store'
 import { updateSessionData } from '../sessionStore'
 import { taskGraphEngine } from '../taskGraphEngine'
 import { spawnBuilderFixTask } from './spawnBuilderFixTask'
+import { archiveWorktreeAfterReject, mergeAfterApproval } from './mergeAfterApproval'
 
 function uid(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
@@ -259,25 +260,87 @@ export async function persistTestFailure(input: PersistTestFailureInput): Promis
 }
 
 export async function persistReviewVerdict(input: PersistReviewVerdictInput): Promise<void> {
-  const status = input.approved ? 'done' : 'failed'
+  const graphState = taskGraphEngine.getState()
+  const { nodes, edges } = graphState
 
-  await taskGraphEngine.transitionNode(input.node.id, status, {
+  if (input.approved) {
+    const mergeResult = await mergeAfterApproval({
+      reviewerNode: input.node,
+      project: input.project,
+      sessionId: input.sessionId,
+      nodes,
+      edges,
+    })
+
+    if (mergeResult.outcome === 'conflict') {
+      return
+    }
+
+    if (mergeResult.outcome === 'error') {
+      await taskGraphEngine.transitionNode(input.node.id, 'failed', {
+        reviewCompletedAt: new Date().toISOString(),
+        reviewApproved: false,
+        blockReason: mergeResult.message,
+      })
+      await getLocalStore().appendEvent({
+        projectId: input.project.id,
+        nodeId: input.node.id,
+        sessionId: input.sessionId,
+        type: 'session_completed',
+        message: `Merge failed: ${mergeResult.message}`,
+        severity: 'error',
+        payload: { agentName: 'Governance', approved: false },
+      })
+      return
+    }
+
+    await taskGraphEngine.transitionNode(input.node.id, 'done', {
+      reviewCompletedAt: new Date().toISOString(),
+      reviewApproved: true,
+      ...(mergeResult.outcome === 'merged'
+        ? { mergedBranch: mergeResult.branchName, mergeTarget: mergeResult.targetBranch }
+        : {}),
+    })
+
+    await getLocalStore().appendEvent({
+      projectId: input.project.id,
+      nodeId: input.node.id,
+      sessionId: input.sessionId,
+      type: 'review_approved',
+      message: `Review approved: ${input.node.title}`,
+      severity: 'success',
+      payload: {
+        agentName: 'Reviewer',
+        approved: true,
+        mergeOutcome: mergeResult.outcome,
+      },
+    })
+    return
+  }
+
+  await archiveWorktreeAfterReject(
+    input.node,
+    input.project,
+    input.sessionId,
+    nodes,
+    edges,
+  )
+
+  await taskGraphEngine.transitionNode(input.node.id, 'failed', {
     reviewCompletedAt: new Date().toISOString(),
-    reviewApproved: input.approved,
+    reviewApproved: false,
   })
 
   await getLocalStore().appendEvent({
     projectId: input.project.id,
     nodeId: input.node.id,
     sessionId: input.sessionId,
-    type: input.approved ? 'review_approved' : 'session_completed',
-    message: input.approved
-      ? `Review approved: ${input.node.title}`
-      : `Review rejected: ${input.node.title}`,
-    severity: input.approved ? 'success' : 'warning',
+    type: 'session_completed',
+    message: `Review rejected: ${input.node.title}`,
+    severity: 'warning',
     payload: {
       agentName: 'Reviewer',
-      approved: input.approved,
+      approved: false,
     },
   })
 }

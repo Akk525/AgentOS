@@ -17,6 +17,7 @@ const STORED_TO_ORCHESTRATOR: Record<string, OrchestratorEventType> = {
   provider_load: 'provider_load',
   session_queued: 'session_queued',
   merge_conflict: 'merge_conflict',
+  merge_completed: 'merge_completed',
   blocker_detected: 'blocker_detected',
   blocker_resolved: 'blocker_resolved',
   escalated: 'escalated',

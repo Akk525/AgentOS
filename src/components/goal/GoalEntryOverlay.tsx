@@ -13,10 +13,11 @@ import type { PlanningPhase } from '../../runtime/agents/plannerAgent'
 
 type OverlayState = 'idle' | 'planning' | 'error'
 
-const GOVERNANCE_OPTIONS: { value: GovernanceMode; label: string }[] = [
-  { value: 'assisted', label: 'Assisted' },
-  { value: 'manual', label: 'Manual' },
-  { value: 'autonomous', label: 'Autonomous' },
+const GOVERNANCE_OPTIONS: { value: GovernanceMode; label: string; hint: string }[] = [
+  { value: 'assisted', label: 'Assisted', hint: 'Auto build/test/review; you approve merge' },
+  { value: 'manual', label: 'Manual', hint: 'You run each stage; merge needs approval' },
+  { value: 'autonomous', label: 'Autonomous', hint: 'Auto through review; merge without click' },
+  { value: 'full_auto', label: 'Full Auto', hint: 'Minimal gates; auto-merge on reviewer approve' },
 ]
 
 const PROVIDER_OPTIONS = [
@@ -282,6 +283,9 @@ export function GoalEntryOverlay({ onComplete }: GoalEntryOverlayProps) {
                   ))}
                 </select>
               </div>
+              <p className="text-[10px] font-mono text-slate-600 -mt-2">
+                {GOVERNANCE_OPTIONS.find(o => o.value === governanceMode)?.hint}
+              </p>
 
               {overlayState === 'error' && errorMessage && (
                 <p className="text-[11px] font-mono text-crimson-400">{errorMessage}</p>

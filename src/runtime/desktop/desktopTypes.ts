@@ -56,6 +56,21 @@ export interface WriteWorkspaceFilesResult {
   error: string | null
 }
 
+export interface MergeWorktreeResult {
+  success: boolean
+  conflict: boolean
+  stdout: string
+  stderr: string
+  error: string | null
+}
+
+export interface RemoveWorktreeResult {
+  success: boolean
+  stdout: string
+  stderr: string
+  error: string | null
+}
+
 export interface DesktopBridge {
   environment: DesktopEnvironment
   pickDirectory(): Promise<DirectoryPickResult>
@@ -65,4 +80,6 @@ export interface DesktopBridge {
   runWorkspaceCommand(worktreePath: string, command: string): Promise<CommandResult>
   getGitDiff(worktreePath: string): Promise<GitDiffResult>
   writeWorkspaceFiles(worktreePath: string, files: WorkspaceFileWrite[]): Promise<WriteWorkspaceFilesResult>
+  mergeWorktree(repoPath: string, branchName: string, targetBranch?: string): Promise<MergeWorktreeResult>
+  removeWorktree(repoPath: string, worktreePath: string, branchName?: string): Promise<RemoveWorktreeResult>
 }

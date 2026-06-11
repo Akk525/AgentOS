@@ -34,7 +34,7 @@ export function AgentSession({ task: propTask, onBack }: AgentSessionProps) {
   const task = propTask ?? tasks.find(t => t.status === 'running') ?? tasks[0]
   const agent = task ? getTaskAgentDisplay(task) : null
   const { session, loading: sessionLoading, fromStore } = useGraphSession(task?.id)
-  const { approveReview, rejectReview } = useExecution()
+  const { approveReview, rejectReview, requestReviewChanges } = useExecution()
   const [activeTab, setActiveTab] = useState<Tab>(task?.status === 'review' ? 'review' : 'terminal')
   const [injectOpen, setInjectOpen] = useState(false)
 
@@ -271,6 +271,7 @@ export function AgentSession({ task: propTask, onBack }: AgentSessionProps) {
                     testRunState={testRunState}
                     onApprove={() => void approveReview(task.id)}
                     onReject={() => void rejectReview(task.id)}
+                    onRequestChanges={note => void requestReviewChanges(task.id, note)}
                   />
                 )}
                 {activeTab === 'diff' && <RawDiffPanel />}

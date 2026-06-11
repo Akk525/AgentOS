@@ -3,7 +3,9 @@ import { runBuilderForNode } from './agents/builderAgent'
 import { runReviewerForNode } from './agents/reviewerAgent'
 import { runTestWriterForNode } from './agents/testWriterAgent'
 import { persistReviewVerdict } from './execution/persistExecution'
+import { spawnReviewFixTask } from './execution/spawnReviewFixTask'
 import { getAutoRunEnabled, getRepoPath, setAutoRunEnabled, setRepoPath } from './execution/executionConfig'
+import { shouldAutoActOnReviewerVerdict } from './governance/governancePolicy'
 import { getNodeRole } from './graphWorktree'
 import { taskGraphEngine } from './taskGraphEngine'
 import { orchestratorRuntime } from './orchestratorRuntime'
@@ -68,6 +70,17 @@ class ExecutionCoordinator {
     this.listeners.forEach(fn => fn(this.state))
   }
 
+  private syncGovernanceFromProject(): void {
+    const project = taskGraphEngine.getState().activeProject
+    if (!project) return
+
+    if (project.governanceMode === 'manual' && this.state.autoRun) {
+      setAutoRunEnabled(false)
+      this.patch({ autoRun: false })
+      this.refreshPausedReason()
+    }
+  }
+
   private refreshPausedReason(): void {
     if (!this.state.autoRun) {
       this.patch({ pausedReason: 'manual_pause' })
@@ -85,8 +98,10 @@ class ExecutionCoordinator {
     this.started = true
 
     await taskGraphEngine.init()
+    this.syncGovernanceFromProject()
 
     this.unsubGraph = taskGraphEngine.subscribe(() => {
+      this.syncGovernanceFromProject()
       void orchestratorRuntime.refreshFromStore()
       if (this.state.autoRun && !this.state.running) {
         void this.tick()
@@ -198,7 +213,19 @@ class ExecutionCoordinator {
       } else if (role === 'test-writer') {
         await runTestWriterForNode(node, project, { repoPath })
       } else if (role === 'reviewer') {
-        await runReviewerForNode(node, project)
+        const review = await runReviewerForNode(node, project)
+        await orchestratorRuntime.refreshFromStore()
+
+        if (shouldAutoActOnReviewerVerdict(project.governanceMode, review.verdict)) {
+          if (review.verdict === 'approve') {
+            await this.approveReview(node.id)
+          } else if (review.verdict === 'reject') {
+            await this.rejectReview(node.id)
+          } else if (review.verdict === 'request_changes') {
+            await this.requestReviewChanges(node.id, review.summary)
+          }
+        }
+        return
       }
 
       await orchestratorRuntime.refreshFromStore()
@@ -240,6 +267,23 @@ class ExecutionCoordinator {
       project,
       sessionId: node.assignedSessionId ?? `sess-${node.id}`,
       approved: false,
+    })
+    await orchestratorRuntime.refreshFromStore()
+  }
+
+  async requestReviewChanges(nodeId: string, note: string): Promise<void> {
+    const graphState = taskGraphEngine.getState()
+    const node = graphState.nodes.find(n => n.id === nodeId)
+    const project = graphState.activeProject
+    if (!node || !project) return
+
+    const trimmed = note.trim() || 'Address review feedback'
+    await spawnReviewFixTask({
+      project,
+      reviewerNode: node,
+      changeNote: trimmed,
+      nodes: graphState.nodes,
+      edges: graphState.edges,
     })
     await orchestratorRuntime.refreshFromStore()
   }

@@ -14,6 +14,8 @@ fn main() {
             commands::run_workspace_command,
             commands::get_git_diff,
             commands::write_workspace_files,
+            commands::merge_worktree,
+            commands::remove_worktree,
             store_commands::store_init,
             store_commands::store_get_status,
             store_commands::store_list_projects,

@@ -5,6 +5,7 @@ import type {
   DesktopBridge, DirectoryPickResult, RepoInfo, PlatformInfo,
   WorktreeCreateResult, CommandResult, GitDiffResult,
   WorkspaceFileWrite, WriteWorkspaceFilesResult,
+  MergeWorktreeResult, RemoveWorktreeResult,
 } from './desktopTypes'
 
 class TauriBridge implements DesktopBridge {
@@ -48,6 +49,24 @@ class TauriBridge implements DesktopBridge {
   ): Promise<WriteWorkspaceFilesResult> {
     const { invoke } = await import('@tauri-apps/api/core')
     return invoke<WriteWorkspaceFilesResult>('write_workspace_files', { worktreePath, files })
+  }
+
+  async mergeWorktree(
+    repoPath: string,
+    branchName: string,
+    targetBranch = 'main',
+  ): Promise<MergeWorktreeResult> {
+    const { invoke } = await import('@tauri-apps/api/core')
+    return invoke<MergeWorktreeResult>('merge_worktree', { repoPath, branchName, targetBranch })
+  }
+
+  async removeWorktree(
+    repoPath: string,
+    worktreePath: string,
+    branchName?: string,
+  ): Promise<RemoveWorktreeResult> {
+    const { invoke } = await import('@tauri-apps/api/core')
+    return invoke<RemoveWorktreeResult>('remove_worktree', { repoPath, worktreePath, branchName })
   }
 }
 

@@ -32,6 +32,7 @@ export function ReviewPanel({
   testRunState = 'idle',
   onApprove,
   onReject,
+  onRequestChanges,
 }: ReviewPanelProps) {
   const [selectedFile, setSelectedFile] = useState(session.diff[0]?.path ?? '')
   const [changesNote, setChangesNote] = useState('')
@@ -59,8 +60,8 @@ export function ReviewPanel({
                 <ThumbsUp size={28} className="text-emerald-400" />
               </div>
               <div>
-                <h3 className="text-base font-semibold text-white mb-1">Approved & Queued for Merge</h3>
-                <p className="text-sm text-slate-500">{task.branch} → main will be merged after CI passes.</p>
+                <h3 className="text-base font-semibold text-white mb-1">Approved — Merging</h3>
+                <p className="text-sm text-slate-500">{task.branch} → main is being merged locally.</p>
               </div>
             </>
           )}
@@ -71,7 +72,7 @@ export function ReviewPanel({
               </div>
               <div>
                 <h3 className="text-base font-semibold text-white mb-1">Task Rejected</h3>
-                <p className="text-sm text-slate-500">The worktree has been archived. Task moved to Failed.</p>
+                <p className="text-sm text-slate-500">Worktree removed. Task marked failed.</p>
               </div>
             </>
           )}
@@ -353,7 +354,15 @@ export function ReviewPanel({
                 variant="secondary"
                 size="sm"
                 icon={<MessageSquare size={13} />}
-                onClick={() => setShowChangesInput(!showChangesInput)}
+                onClick={() => {
+                  if (showChangesInput && changesNote.trim()) {
+                    setApproval('changes')
+                    onRequestChanges?.(changesNote.trim())
+                    setShowChangesInput(false)
+                  } else {
+                    setShowChangesInput(!showChangesInput)
+                  }
+                }}
               >
                 {showChangesInput && changesNote ? 'Send Changes' : 'Request Changes'}
               </GlowButton>

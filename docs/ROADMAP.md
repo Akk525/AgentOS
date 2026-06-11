@@ -166,6 +166,25 @@ What shipped:
 - Failed tests spawn a builder fix task; test-writer resets to pending until fix completes
 - Timeline emits `tests_passed` / `tests_failed` events
 
+### Sprint 8 — Governance modes + merge gates (complete)
+
+**Shipped:** Runtime governance policy, real git merge on approve, worktree cleanup, autonomous auto-merge.
+
+| What shipped | Where |
+|--------------|-------|
+| Governance policy module | `src/runtime/governance/governancePolicy.ts` |
+| Rust `merge_worktree` + `remove_worktree` | `src-tauri/src/commands.rs` |
+| Merge orchestration after approve | `mergeAfterApproval.ts`, `persistReviewVerdict` |
+| Autonomous/full_auto auto-merge | `executionCoordinator.ts` |
+| Review request-changes → builder fix | `spawnReviewFixTask.ts` |
+| `full_auto` in goal entry + status bar badge | `GoalEntryOverlay.tsx`, `RuntimeStatusBar.tsx` |
+
+**Behaviour today:**
+- **Assisted:** human Approve in ReviewPanel triggers real `git merge` into `main` + worktree remove
+- **Autonomous:** reviewer LLM approve auto-merges without human click
+- **Manual:** auto-run off; user runs each stage; merge still requires approve
+- Reject archives worktree; merge conflict → `blocked` + `merge_conflict` timeline event
+
 | What shipped | Where |
 |--------------|-------|
 | `graphToActiveSessions()` projection | `src/runtime/orchestrationProjection.ts` |
@@ -201,7 +220,7 @@ None — this phase unblocks everything else.
 
 ## Phase B — Year 1 Success (~3 → 12 months)
 
-**Status:** Current (Sprint 7 — tester agent + failure loop shipped)
+**Status:** Current (Sprint 8 — governance + merge gates shipped)
 
 **Goal:** A developer can describe a project, supervise agents building it, review diffs, approve merges, and obtain a working application.
 

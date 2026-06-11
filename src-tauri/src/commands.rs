@@ -75,6 +75,25 @@ pub struct WriteWorkspaceFilesResult {
     pub error: Option<String>,
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MergeWorktreeResult {
+    pub success: bool,
+    pub conflict: bool,
+    pub stdout: String,
+    pub stderr: String,
+    pub error: Option<String>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RemoveWorktreeResult {
+    pub success: bool,
+    pub stdout: String,
+    pub stderr: String,
+    pub error: Option<String>,
+}
+
 const MAX_FILE_BYTES: usize = 512 * 1024;
 const MAX_FILES_PER_CALL: usize = 20;
 
@@ -481,6 +500,212 @@ pub fn write_workspace_files(
     WriteWorkspaceFilesResult {
         success: true,
         files_written: written,
+        error: None,
+    }
+}
+
+fn validate_worktree_path(repo_path: &str, worktree_path: &str) -> Result<(), String> {
+    let repo = Path::new(repo_path).canonicalize().map_err(|e| e.to_string())?;
+    let wt = Path::new(worktree_path).canonicalize().map_err(|e| e.to_string())?;
+    let allowed_root = repo.join(".agentos").join("worktrees");
+    if !wt.starts_with(&allowed_root) {
+        return Err(format!(
+            "Worktree path '{}' is outside '{}'",
+            worktree_path,
+            allowed_root.to_string_lossy()
+        ));
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub fn merge_worktree(
+    repo_path: String,
+    branch_name: String,
+    target_branch: Option<String>,
+) -> MergeWorktreeResult {
+    let target = target_branch.unwrap_or_else(|| "main".to_string());
+
+    if let Err(e) = validate_branch_name(&branch_name) {
+        return MergeWorktreeResult {
+            success: false,
+            conflict: false,
+            stdout: String::new(),
+            stderr: String::new(),
+            error: Some(e),
+        };
+    }
+    if let Err(e) = validate_branch_name(&target) {
+        return MergeWorktreeResult {
+            success: false,
+            conflict: false,
+            stdout: String::new(),
+            stderr: String::new(),
+            error: Some(e),
+        };
+    }
+
+    let repo = Path::new(&repo_path);
+    if !repo.join(".git").is_dir() {
+        return MergeWorktreeResult {
+            success: false,
+            conflict: false,
+            stdout: String::new(),
+            stderr: String::new(),
+            error: Some(format!("'{}' is not a git repository", repo_path)),
+        };
+    }
+
+    let checkout = Command::new("git")
+        .args(["checkout", &target])
+        .current_dir(&repo_path)
+        .output();
+
+    let checkout = match checkout {
+        Ok(out) => out,
+        Err(e) => {
+            return MergeWorktreeResult {
+                success: false,
+                conflict: false,
+                stdout: String::new(),
+                stderr: String::new(),
+                error: Some(format!("Failed to run git checkout: {}", e)),
+            };
+        }
+    };
+
+    if !checkout.status.success() {
+        let stderr = String::from_utf8_lossy(&checkout.stderr).into_owned();
+        return MergeWorktreeResult {
+            success: false,
+            conflict: false,
+            stdout: String::from_utf8_lossy(&checkout.stdout).into_owned(),
+            stderr: stderr.clone(),
+            error: Some(stderr),
+        };
+    }
+
+    let status = Command::new("git")
+        .args(["status", "--porcelain"])
+        .current_dir(&repo_path)
+        .output();
+
+    if let Ok(out) = status {
+        let dirty = String::from_utf8_lossy(&out.stdout);
+        if !dirty.trim().is_empty() {
+            return MergeWorktreeResult {
+                success: false,
+                conflict: false,
+                stdout: String::new(),
+                stderr: String::new(),
+                error: Some(format!(
+                    "Target branch '{}' has uncommitted changes; commit or stash before merge",
+                    target
+                )),
+            };
+        }
+    }
+
+    let merge = Command::new("git")
+        .args(["merge", "--no-ff", &branch_name])
+        .current_dir(&repo_path)
+        .output();
+
+    match merge {
+        Ok(out) => {
+            let stdout = String::from_utf8_lossy(&out.stdout).into_owned();
+            let stderr = String::from_utf8_lossy(&out.stderr).into_owned();
+            let combined = format!("{}\n{}", stdout, stderr);
+            let conflict = combined.contains("CONFLICT") || out.status.code() == Some(1);
+            let success = out.status.success();
+            let error = if success {
+                None
+            } else if conflict {
+                Some("Merge conflict".to_string())
+            } else {
+                Some(stderr.clone())
+            };
+            MergeWorktreeResult {
+                success,
+                conflict,
+                stdout,
+                stderr,
+                error,
+            }
+        }
+        Err(e) => MergeWorktreeResult {
+            success: false,
+            conflict: false,
+            stdout: String::new(),
+            stderr: String::new(),
+            error: Some(format!("Failed to run git merge: {}", e)),
+        },
+    }
+}
+
+#[tauri::command]
+pub fn remove_worktree(
+    repo_path: String,
+    worktree_path: String,
+    branch_name: Option<String>,
+) -> RemoveWorktreeResult {
+    if let Err(e) = validate_worktree_path(&repo_path, &worktree_path) {
+        return RemoveWorktreeResult {
+            success: false,
+            stdout: String::new(),
+            stderr: String::new(),
+            error: Some(e),
+        };
+    }
+
+    let remove = Command::new("git")
+        .args(["worktree", "remove", "--force", &worktree_path])
+        .current_dir(&repo_path)
+        .output();
+
+    let mut stdout = String::new();
+    let mut stderr = String::new();
+
+    match remove {
+        Ok(out) => {
+            stdout.push_str(&String::from_utf8_lossy(&out.stdout));
+            stderr.push_str(&String::from_utf8_lossy(&out.stderr));
+            if !out.status.success() {
+                return RemoveWorktreeResult {
+                    success: false,
+                    stdout,
+                    stderr: stderr.clone(),
+                    error: Some(stderr),
+                };
+            }
+        }
+        Err(e) => {
+            return RemoveWorktreeResult {
+                success: false,
+                stdout: String::new(),
+                stderr: String::new(),
+                error: Some(format!("Failed to run git worktree remove: {}", e)),
+            };
+        }
+    }
+
+    if let Some(branch) = branch_name {
+        if validate_branch_name(&branch).is_ok() {
+            if let Ok(out) = Command::new("git")
+                .args(["branch", "-d", &branch])
+                .current_dir(&repo_path)
+                .output()
+            {
+                stdout.push_str(&String::from_utf8_lossy(&out.stdout));
+                stderr.push_str(&String::from_utf8_lossy(&out.stderr));
+            }
+        }
+    }
+
+    RemoveWorktreeResult {
+        success: true,
+        stdout,
+        stderr,
         error: None,
     }
 }

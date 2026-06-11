@@ -10,6 +10,7 @@ interface ExecutionContextValue extends ExecutionCoordinatorState {
   runNode: (nodeId: string) => Promise<void>
   approveReview: (nodeId: string) => Promise<void>
   rejectReview: (nodeId: string) => Promise<void>
+  requestReviewChanges: (nodeId: string, note: string) => Promise<void>
 }
 
 const ExecutionContext = createContext<ExecutionContextValue | null>(null)
@@ -39,6 +40,10 @@ export function ExecutionProvider({ children }: { children: ReactNode }) {
     await executionCoordinator.rejectReview(nodeId)
   }, [])
 
+  const requestReviewChanges = useCallback(async (nodeId: string, note: string) => {
+    await executionCoordinator.requestReviewChanges(nodeId, note)
+  }, [])
+
   return (
     <ExecutionContext.Provider
       value={{
@@ -47,6 +52,7 @@ export function ExecutionProvider({ children }: { children: ReactNode }) {
         runNode,
         approveReview,
         rejectReview,
+        requestReviewChanges,
       }}
     >
       {children}

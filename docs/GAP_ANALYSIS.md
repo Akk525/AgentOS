@@ -12,12 +12,12 @@ Current implementation status mapped against the [future-state PRD](PRD.md). Thi
 |---|--------|--------|----------|
 | 1 | Project Planning | ⚠️ Partial | UI + types + mock plan |
 | 2 | Task Graph Engine | ⚠️ Partial | TaskGraphEngine + executor; UI partially wired |
-| 3 | Agent Organization | ⚠️ Partial | Builder/test-writer/reviewer loop (Sprint 6–7); governance deferred |
-| 4 | Worktree Runtime | ⚠️ Partial | Real create (desktop); incomplete lifecycle |
+| 3 | Agent Organization | ⚠️ Partial | Full agent loop + governance modes (Sprint 6–8) |
+| 4 | Worktree Runtime | ⚠️ Partial | Create + merge + remove (Sprint 8); push/cleanup at scale deferred |
 | 5 | Execution Timeline | ⚠️ Partial | Durable store + hydrate; sessions still simulated |
 | 6 | Replay Engine | ❌ Missing | UI placeholders only |
-| 7 | Human Governance | ⚠️ Partial | Takeover/inject; weak override wiring |
-| 8 | Approval Gates | ⚠️ Partial | Escalation modal + Rust allowlist |
+| 7 | Human Governance | ⚠️ Partial | Governance modes enforced at runtime (Sprint 8); audit/replay integration deferred |
+| 8 | Approval Gates | ⚠️ Partial | Merge gate wired to real git (Sprint 8); escalation re-run + file-delete gates deferred |
 | 9 | Multi-Model Runtime | ⚠️ Partial | Inference + planner (S5); builder/reviewer execution |
 | 10 | Skills Framework | ⚠️ Partial | Static catalog |
 | 11 | Persistent Agent Memory | ❌ Missing | — |
@@ -133,8 +133,8 @@ flowchart TB
 | | |
 |---|---|
 | **Status** | ⚠️ Partial |
-| **Existing assets** | [`TakeoverPanel.tsx`](../src/components/runtime/TakeoverPanel.tsx); [`InjectModal.tsx`](../src/components/runtime/InjectModal.tsx); `SessionMode` types; `escalateBlocker`, `overrideAssignment` in orchestrator |
-| **Gap** | No governance mode selector; `overrideAssignment` logs but doesn't mutate sessions; settings toggles unwired; no override history |
+| **Existing assets** | [`governancePolicy.ts`](../src/runtime/governance/governancePolicy.ts); mode selector at project create; coordinator respects manual/auto modes; status bar mode badge |
+| **Gap** | Post-create mode change; override history; settings toggles still unwired |
 | **Priority** | High — Year 1 merge approval |
 
 ---
@@ -144,8 +144,8 @@ flowchart TB
 | | |
 |---|---|
 | **Status** | ⚠️ Partial |
-| **Existing assets** | [`PermissionEscalationModal.tsx`](../src/components/runtime/PermissionEscalationModal.tsx); command risk classification; Rust allowlist; [`ReviewPanel.tsx`](../src/components/review/ReviewPanel.tsx) |
-| **Gap** | Gates not connected to merge; `cmdResolveEscalation` doesn't re-run blocked commands; file-write gates missing; review approval is local React state only |
+| **Existing assets** | Approve → `merge_worktree` + `remove_worktree` (Sprint 8); conflict → `merge_conflict` event; [`ReviewPanel.tsx`](../src/components/review/ReviewPanel.tsx) wired to coordinator |
+| **Gap** | Escalation re-run; dependency-install / file-delete gates; deploy gates |
 | **Priority** | High — Year 1 criterion #6 |
 
 ---
@@ -269,6 +269,6 @@ See [ROADMAP.md](ROADMAP.md) for the full phased plan. Critical path:
 4. ~~**Observatory wiring** (Pillar 15) — Dashboard, Sessions, orchestrator on graph~~ **Done (Sprint 3b–4)**
 5. **Multi-Model Runtime** (Pillar 9) — streaming inference ← **partial (Sprint 5)**
 6. **Agent Organization** (Pillar 3) — builder/test-writer/reviewer loop ← **partial (Sprint 6–7)**
-7. **Governance + Gates** (Pillars 7, 8) — merge approval ← **Sprint 8**
+7. ~~**Governance + Gates** (Pillars 7, 8) — merge approval~~ **Partial (Sprint 8)**
 
 Year 2: Replay (6), Memory (11), Skills executor (10).

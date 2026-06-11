@@ -193,6 +193,41 @@ class WebBridge implements DesktopBridge {
       error: null,
     }
   }
+
+  async mergeWorktree(
+    _repoPath: string,
+    branchName: string,
+    targetBranch = 'main',
+  ) {
+    await new Promise(r => setTimeout(r, 400))
+    const conflict = branchName.includes('conflict')
+    if (conflict) {
+      return {
+        success: false,
+        conflict: true,
+        stdout: 'Auto-merging\nCONFLICT (content): src/auth/session.ts',
+        stderr: 'Automatic merge failed; fix conflicts and then commit the result.',
+        error: 'Merge conflict',
+      }
+    }
+    return {
+      success: true,
+      conflict: false,
+      stdout: `Merge made by the 'ort' strategy.\nMerge branch '${branchName}' into ${targetBranch}`,
+      stderr: '',
+      error: null,
+    }
+  }
+
+  async removeWorktree(_repoPath: string, worktreePath: string, branchName?: string) {
+    await new Promise(r => setTimeout(r, 200))
+    return {
+      success: true,
+      stdout: `Removed worktree ${worktreePath}${branchName ? `\nDeleted branch ${branchName}` : ''}`,
+      stderr: '',
+      error: null,
+    }
+  }
 }
 
 export const webBridge = new WebBridge()

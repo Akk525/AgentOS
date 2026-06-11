@@ -4,6 +4,8 @@ import { Activity, Cpu, Layers, AlertTriangle, CheckCircle2, ChevronRight, Wifi,
 import { useRuntime } from '../../context/RuntimeContext'
 import { useExecution } from '../../context/ExecutionContext'
 import { useGraphTasks } from '../../hooks/useGraphTasks'
+import { useTaskGraph } from '../../context/TaskGraphContext'
+import { governanceModeLabel } from '../../runtime/governance/governancePolicy'
 import { getTaskAgentDisplay } from '../../lib/taskAgent'
 import type { SessionMode } from '../../types'
 import type { RuntimeConnectionStatus } from '../../runtime/runtimeTypes'
@@ -50,6 +52,7 @@ export function RuntimeStatusBar() {
   const [tick, setTick] = useState(0)
 
   const { tasks } = useGraphTasks()
+  const { activeProject } = useTaskGraph()
   const runningTasks = tasks.filter(t => t.status === 'running')
   const reviewTasks  = tasks.filter(t => t.status === 'review')
   const activeTask   = activeTaskId ? tasks.find(t => t.id === activeTaskId) : runningTasks[0]
@@ -91,6 +94,15 @@ export function RuntimeStatusBar() {
         </div>
 
         <div className="w-px h-3.5 bg-white/[0.06]" />
+
+        {activeProject && (
+          <>
+            <span className="text-[10px] font-mono text-slate-600">
+              {governanceModeLabel(activeProject.governanceMode)}
+            </span>
+            <div className="w-px h-3.5 bg-white/[0.06]" />
+          </>
+        )}
 
         {/* Active task */}
         {activeTask ? (
