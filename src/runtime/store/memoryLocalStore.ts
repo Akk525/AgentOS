@@ -165,11 +165,16 @@ export const memoryLocalStore: LocalStore = {
   },
 
   async listEvents(options: ListEventsOptions = {}): Promise<StoredEvent[]> {
-    const { projectId, limit = 100, offset = 0 } = options
-    let list = projectId
-      ? events.filter(e => e.projectId === projectId)
-      : [...events]
-    list = list.sort((a, b) => b.timestamp.localeCompare(a.timestamp))
+    const { projectId, nodeId, sessionId, limit = 100, offset = 0, order = 'desc' } = options
+    let list = [...events]
+    if (projectId) list = list.filter(e => e.projectId === projectId)
+    if (nodeId) list = list.filter(e => e.nodeId === nodeId)
+    if (sessionId) list = list.filter(e => e.sessionId === sessionId)
+    list = list.sort((a, b) =>
+      order === 'asc'
+        ? a.timestamp.localeCompare(b.timestamp)
+        : b.timestamp.localeCompare(a.timestamp),
+    )
     return list.slice(offset, offset + limit)
   },
 

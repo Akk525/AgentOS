@@ -23,6 +23,8 @@ import { OrchestrationView } from '../orchestration/OrchestrationView'
 import { OrchestratorProvider } from '../../context/OrchestratorContext'
 import { TaskGraphProvider } from '../../context/TaskGraphContext'
 import { ExecutionProvider } from '../../context/ExecutionContext'
+import { ReplayProvider } from '../../context/ReplayContext'
+import { ReplayPanel } from '../replay/ReplayPanel'
 import { RoadmapView } from '../roadmap/RoadmapView'
 import { OnboardingOverlay } from '../onboarding/OnboardingOverlay'
 import { GoalEntryGate } from '../goal/GoalEntryGate'
@@ -140,6 +142,7 @@ export function AppShell({
   return (
     <RuntimeProvider>
       <TaskGraphProvider>
+      <ReplayProvider>
       <ExecutionProvider>
       <OrchestratorProvider>
       <div className="flex h-full w-full overflow-hidden">
@@ -213,9 +216,11 @@ export function AppShell({
           onClose={() => setGoalEntryOpen(false)}
           onViewChange={onViewChange}
         />
+        <ReplayPanel />
       </div>
       </OrchestratorProvider>
       </ExecutionProvider>
+      </ReplayProvider>
       </TaskGraphProvider>
     </RuntimeProvider>
   )

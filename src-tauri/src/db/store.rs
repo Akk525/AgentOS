@@ -388,34 +388,43 @@ impl DbStore {
     pub fn list_events(
         &self,
         project_id: Option<&str>,
+        node_id: Option<&str>,
+        session_id: Option<&str>,
+        order_asc: bool,
         limit: u32,
         offset: u32,
     ) -> Result<Vec<EventRow>, String> {
         let conn = self.conn.lock().map_err(|e| e.to_string())?;
+        let order = if order_asc { "ASC" } else { "DESC" };
 
-        let rows: Vec<EventRow> = if let Some(pid) = project_id {
-            let mut stmt = conn
-                .prepare(
-                    "SELECT id, project_id, session_id, node_id, event_type, message, severity, payload, timestamp FROM events WHERE project_id = ?1 ORDER BY timestamp DESC LIMIT ?2 OFFSET ?3",
-                )
-                .map_err(|e| e.to_string())?;
-            let mapped = stmt
-                .query_map(params![pid, limit, offset], map_event)
-                .map_err(|e| e.to_string())?;
-            mapped.filter_map(|r| r.ok()).collect()
-        } else {
-            let mut stmt = conn
-                .prepare(
-                    "SELECT id, project_id, session_id, node_id, event_type, message, severity, payload, timestamp FROM events ORDER BY timestamp DESC LIMIT ?1 OFFSET ?2",
-                )
-                .map_err(|e| e.to_string())?;
-            let mapped = stmt
-                .query_map(params![limit, offset], map_event)
-                .map_err(|e| e.to_string())?;
-            mapped.filter_map(|r| r.ok()).collect()
-        };
+        let mut sql = String::from(
+            "SELECT id, project_id, session_id, node_id, event_type, message, severity, payload, timestamp FROM events WHERE 1=1",
+        );
+        let mut param_values: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
 
-        Ok(rows)
+        if let Some(pid) = project_id {
+            sql.push_str(&format!(" AND project_id = ?{}", param_values.len() + 1));
+            param_values.push(Box::new(pid.to_string()));
+        }
+        if let Some(nid) = node_id {
+            sql.push_str(&format!(" AND node_id = ?{}", param_values.len() + 1));
+            param_values.push(Box::new(nid.to_string()));
+        }
+        if let Some(sid) = session_id {
+            sql.push_str(&format!(" AND session_id = ?{}", param_values.len() + 1));
+            param_values.push(Box::new(sid.to_string()));
+        }
+
+        sql.push_str(&format!(" ORDER BY timestamp {order} LIMIT ?{} OFFSET ?{}", param_values.len() + 1, param_values.len() + 2));
+        param_values.push(Box::new(limit));
+        param_values.push(Box::new(offset));
+
+        let params_ref: Vec<&dyn rusqlite::types::ToSql> = param_values.iter().map(|p| p.as_ref()).collect();
+        let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
+        let mapped = stmt
+            .query_map(params_ref.as_slice(), map_event)
+            .map_err(|e| e.to_string())?;
+        Ok(mapped.filter_map(|r| r.ok()).collect())
     }
 
     pub fn upsert_session(&self, session: &SessionRow) -> Result<(), String> {

@@ -23,7 +23,13 @@ function formatDuration(seconds: number): string {
   return `${Math.floor(seconds / 3600)}h${Math.floor((seconds % 3600) / 60)}m`
 }
 
-function SessionRow({ session }: { session: SessionArchive }) {
+function SessionRow({
+  session,
+  onReplay,
+}: {
+  session: SessionArchive
+  onReplay?: (session: SessionArchive) => void
+}) {
   const [hovered, setHovered] = useState(false)
   const cfg = outcomeConfig[session.outcome]
 
@@ -78,7 +84,11 @@ function SessionRow({ session }: { session: SessionArchive }) {
                     Review
                   </button>
                 )}
-                <button className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[8px] font-mono text-slate-600 border border-white/[0.07] hover:border-white/[0.12] hover:text-slate-400 transition-colors">
+                <button
+                  type="button"
+                  onClick={() => onReplay?.(session)}
+                  className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[8px] font-mono text-slate-600 border border-white/[0.07] hover:border-white/[0.12] hover:text-slate-400 transition-colors"
+                >
                   <RotateCcw size={7} />
                   Replay
                 </button>
@@ -95,7 +105,15 @@ function SessionRow({ session }: { session: SessionArchive }) {
   )
 }
 
-function WorkspaceGroup({ name, sessions }: { name: string; sessions: SessionArchive[] }) {
+function WorkspaceGroup({
+  name,
+  sessions,
+  onReplay,
+}: {
+  name: string
+  sessions: SessionArchive[]
+  onReplay?: (session: SessionArchive) => void
+}) {
   const [open, setOpen] = useState(true)
 
   return (
@@ -118,7 +136,7 @@ function WorkspaceGroup({ name, sessions }: { name: string; sessions: SessionArc
             transition={{ duration: 0.15 }}
             className="overflow-hidden px-1 space-y-0.5"
           >
-            {sessions.map(s => <SessionRow key={s.id} session={s} />)}
+            {sessions.map(s => <SessionRow key={s.id} session={s} onReplay={onReplay} />)}
           </motion.div>
         )}
       </AnimatePresence>
@@ -126,7 +144,11 @@ function WorkspaceGroup({ name, sessions }: { name: string; sessions: SessionArc
   )
 }
 
-export function SessionArchivePanel() {
+export function SessionArchivePanel({
+  onReplay,
+}: {
+  onReplay?: (session: SessionArchive) => void
+}) {
   // Group by workspace
   const groups = mockSessionArchive.reduce<Record<string, SessionArchive[]>>((acc, s) => {
     ;(acc[s.workspaceName] ??= []).push(s)
@@ -143,7 +165,7 @@ export function SessionArchivePanel() {
 
       <div className="pb-3 space-y-2">
         {Object.entries(groups).map(([ws, sessions]) => (
-          <WorkspaceGroup key={ws} name={ws} sessions={sessions} />
+          <WorkspaceGroup key={ws} name={ws} sessions={sessions} onReplay={onReplay} />
         ))}
       </div>
     </div>

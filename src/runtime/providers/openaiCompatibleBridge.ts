@@ -2,7 +2,7 @@
 // Anthropic uses the Messages API when providerId is 'anthropic'.
 
 import type { ProviderBridge, ProviderHealth } from './providerBridge'
-import type { CompletionMessage, CompletionRequest, CompletionResult } from '../inference/types'
+import type { CompletionMessage, CompletionRequest, CompletionResult, StreamCallback } from '../inference/types'
 import { InferenceError } from '../inference/types'
 
 const INFERENCE_TIMEOUT_MS = 120_000
@@ -122,6 +122,20 @@ export class OpenAICompatibleBridge implements ProviderBridge {
     return this.completeOpenAI(request)
   }
 
+  async stream(request: CompletionRequest, onChunk: StreamCallback): Promise<CompletionResult> {
+    if (!this.apiKey) {
+      throw new InferenceError(
+        'unconfigured',
+        `No API key configured. Set VITE_${this.providerId.toUpperCase()}_API_KEY in your environment.`,
+      )
+    }
+
+    if (this.providerId === 'anthropic') {
+      return this.streamAnthropic(request, onChunk)
+    }
+    return this.streamOpenAI(request, onChunk)
+  }
+
   private authHeaders(): Record<string, string> {
     if (this.providerId === 'anthropic') {
       return {
@@ -142,6 +156,191 @@ export class OpenAICompatibleBridge implements ProviderBridge {
     return {
       system: systemParts.length > 0 ? systemParts.join('\n\n') : undefined,
       conversation,
+    }
+  }
+
+  private async streamOpenAI(request: CompletionRequest, onChunk: StreamCallback): Promise<CompletionResult> {
+    const body: Record<string, unknown> = {
+      model: request.model,
+      messages: request.messages,
+      temperature: request.temperature ?? 0.2,
+      max_tokens: request.maxTokens ?? 4096,
+      stream: true,
+      stream_options: { include_usage: true },
+    }
+    if (request.jsonMode) {
+      body.response_format = { type: 'json_object' }
+    }
+
+    const res = await fetch(`${this.endpoint}/v1/chat/completions`, {
+      method: 'POST',
+      headers: this.authHeaders(),
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(INFERENCE_TIMEOUT_MS),
+    })
+
+    if (!res.ok) {
+      const detail = await res.text().catch(() => '')
+      throw new InferenceError(
+        'inference_failed',
+        `${this.name} stream failed (HTTP ${res.status})${detail ? `: ${detail.slice(0, 200)}` : ''}`,
+      )
+    }
+
+    const reader = res.body?.getReader()
+    if (!reader) {
+      throw new InferenceError('inference_failed', `${this.name} stream returned no body`)
+    }
+
+    const decoder = new TextDecoder()
+    let content = ''
+    let buffer = ''
+    let promptTokens = 0
+    let completionTokens = 0
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split('\n')
+      buffer = lines.pop() ?? ''
+
+      for (const line of lines) {
+        const trimmed = line.trim()
+        if (!trimmed.startsWith('data:')) continue
+        const dataStr = trimmed.slice(5).trim()
+        if (!dataStr || dataStr === '[DONE]') continue
+
+        let data: OpenAIChatResponse & { choices?: { delta?: { content?: string } }[] }
+        try {
+          data = JSON.parse(dataStr) as typeof data
+        } catch {
+          continue
+        }
+
+        const delta = data.choices?.[0]?.delta?.content ?? ''
+        if (delta) {
+          content += delta
+          onChunk({ delta })
+        }
+
+        if (data.usage) {
+          promptTokens = data.usage.prompt_tokens ?? promptTokens
+          completionTokens = data.usage.completion_tokens ?? completionTokens
+        }
+      }
+    }
+
+    if (!content.trim()) {
+      throw new InferenceError('inference_failed', `${this.name} stream returned empty content`)
+    }
+
+    const usage = {
+      promptTokens,
+      completionTokens,
+      totalTokens: promptTokens + completionTokens,
+    }
+    onChunk({ delta: '', done: true, usage })
+
+    return {
+      content: content.trim(),
+      model: request.model,
+      providerId: this.providerId,
+      usage,
+    }
+  }
+
+  private async streamAnthropic(request: CompletionRequest, onChunk: StreamCallback): Promise<CompletionResult> {
+    const { system, conversation } = this.splitMessages(request.messages)
+    const body: Record<string, unknown> = {
+      model: request.model,
+      max_tokens: request.maxTokens ?? 4096,
+      temperature: request.temperature ?? 0.2,
+      messages: conversation.map(m => ({
+        role: m.role === 'assistant' ? 'assistant' : 'user',
+        content: m.content,
+      })),
+      stream: true,
+    }
+    if (system) body.system = system
+
+    const res = await fetch(`${this.endpoint}/v1/messages`, {
+      method: 'POST',
+      headers: this.authHeaders(),
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(INFERENCE_TIMEOUT_MS),
+    })
+
+    if (!res.ok) {
+      const detail = await res.text().catch(() => '')
+      throw new InferenceError(
+        'inference_failed',
+        `Anthropic stream failed (HTTP ${res.status})${detail ? `: ${detail.slice(0, 200)}` : ''}`,
+      )
+    }
+
+    const reader = res.body?.getReader()
+    if (!reader) {
+      throw new InferenceError('inference_failed', 'Anthropic stream returned no body')
+    }
+
+    const decoder = new TextDecoder()
+    let content = ''
+    let buffer = ''
+    let promptTokens = 0
+    let completionTokens = 0
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split('\n')
+      buffer = lines.pop() ?? ''
+
+      for (const line of lines) {
+        const trimmed = line.trim()
+        if (!trimmed.startsWith('data:')) continue
+        const dataStr = trimmed.slice(5).trim()
+        if (!dataStr) continue
+
+        let event: { type?: string; delta?: { text?: string }; message?: { usage?: { input_tokens?: number; output_tokens?: number } } }
+        try {
+          event = JSON.parse(dataStr) as typeof event
+        } catch {
+          continue
+        }
+
+        if (event.type === 'content_block_delta' && event.delta?.text) {
+          content += event.delta.text
+          onChunk({ delta: event.delta.text })
+        }
+        if (event.type === 'message_delta' && event.message?.usage) {
+          completionTokens = event.message.usage.output_tokens ?? completionTokens
+        }
+        if (event.type === 'message_start' && event.message?.usage) {
+          promptTokens = event.message.usage.input_tokens ?? promptTokens
+        }
+      }
+    }
+
+    if (!content.trim()) {
+      throw new InferenceError('inference_failed', 'Anthropic stream returned empty content')
+    }
+
+    const usage = {
+      promptTokens,
+      completionTokens,
+      totalTokens: promptTokens + completionTokens,
+    }
+    onChunk({ delta: '', done: true, usage })
+
+    return {
+      content: content.trim(),
+      model: request.model,
+      providerId: this.providerId,
+      usage,
     }
   }
 

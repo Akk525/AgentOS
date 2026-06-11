@@ -8,6 +8,8 @@ import {
 } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { useRuntime } from '../../context/RuntimeContext'
+import { useGraphTasks } from '../../hooks/useGraphTasks'
+import { useReplay } from '../../hooks/useReplay'
 import type { View } from '../../App'
 
 interface CommandDef {
@@ -28,6 +30,7 @@ function buildCommands(
   runtime: ReturnType<typeof useRuntime>,
   onViewChange?: (view: View) => void,
   onSpawnSession?: () => void,
+  onReplayTask?: (nodeId: string) => void,
 ): CommandDef[] {
   return [
     // Session
@@ -204,9 +207,10 @@ function buildCommands(
     {
       id: 'cmd-replay',
       label: 'Replay session',
-      description: 'Replay a previous agent session',
+      description: 'Step through provenance for the active or latest task',
       group: 'Sessions',
       icon: <Archive size={11} />,
+      action: () => onReplayTask?.(''),
     },
     {
       id: 'cmd-history',
@@ -227,7 +231,19 @@ interface CommandPaletteProps {
 
 export function CommandPalette({ open, onClose, onViewChange, onSpawnSession }: CommandPaletteProps) {
   const runtime = useRuntime()
-  const commands = buildCommands(runtime, onViewChange, onSpawnSession)
+  const { tasks } = useGraphTasks()
+  const { enterReplay } = useReplay()
+
+  const handleReplayTask = useCallback((_: string) => {
+    const task =
+      tasks.find(t => t.status === 'review' || t.status === 'running') ??
+      tasks.find(t => t.status === 'done') ??
+      tasks[0]
+    if (task) void enterReplay({ nodeId: task.id })
+    onViewChange?.('sessions')
+  }, [tasks, enterReplay, onViewChange])
+
+  const commands = buildCommands(runtime, onViewChange, onSpawnSession, handleReplayTask)
 
   const [query, setQuery] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(0)

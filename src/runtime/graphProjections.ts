@@ -1,5 +1,6 @@
 import type { GraphEdge, GraphNode, Project } from '../types/graph'
 import type { PlanSubtask, PlanSubtaskStatus, RuntimePlan, Task, TaskStatus } from '../types'
+import { rollupEpic } from './cost/costRollup'
 
 const STATUS_TO_TASK: Record<GraphNode['status'], TaskStatus> = {
   pending: 'backlog',
@@ -28,6 +29,12 @@ function nodeDependsOn(nodeId: string, edges: GraphEdge[]): string[] {
 }
 
 export function graphNodesToTasks(nodes: GraphNode[], project?: Project | null): Task[] {
+  const epicCostById = new Map(
+    nodes
+      .filter(n => n.type === 'epic')
+      .map(epic => [epic.id, rollupEpic(epic.id, nodes).costUsd]),
+  )
+
   return nodes
     .filter(n => n.type === 'task')
     .map(n => {
@@ -62,6 +69,8 @@ export function graphNodesToTasks(nodes: GraphNode[], project?: Project | null):
         costUsd: meta.costUsd as number | undefined,
         mergeConflict: meta.mergeConflict as boolean | undefined,
         blockReason: meta.blockReason as string | undefined,
+        parentId: n.parentId,
+        epicCostUsd: n.parentId ? epicCostById.get(n.parentId) : undefined,
       }
     })
 }

@@ -15,7 +15,7 @@ Current implementation status mapped against the [future-state PRD](PRD.md). Thi
 | 3 | Agent Organization | ⚠️ Partial | Full agent loop + governance modes (Sprint 6–8) |
 | 4 | Worktree Runtime | ⚠️ Partial | Create + merge + remove (Sprint 8); push/cleanup at scale deferred |
 | 5 | Execution Timeline | ⚠️ Partial | Durable store + hydrate; sessions still simulated |
-| 6 | Replay Engine | ❌ Missing | UI placeholders only |
+| 6 | Replay Engine | ⚠️ Partial | Step-through replay (Sprint 10); branch exploration deferred |
 | 7 | Human Governance | ⚠️ Partial | Governance modes enforced at runtime (Sprint 8); audit/replay integration deferred |
 | 8 | Approval Gates | ⚠️ Partial | Merge gate + conflict fix spawn (Sprint 8–9); file-delete gates deferred |
 | 9 | Multi-Model Runtime | ⚠️ Partial | Inference + planner (S5); builder/reviewer execution |
@@ -121,10 +121,10 @@ flowchart TB
 
 | | |
 |---|---|
-| **Status** | ❌ Missing |
-| **Existing assets** | Replay buttons in [`AgentSession.tsx`](../src/components/sessions/AgentSession.tsx), [`SessionControls.tsx`](../src/components/runtime/SessionControls.tsx), [`SessionArchivePanel.tsx`](../src/components/sessions/SessionArchivePanel.tsx) — all no-ops |
-| **Gap** | Entire replay engine; event recording; step-through UI |
-| **Priority** | Year 2 |
+| **Status** | ⚠️ Partial (Sprint 10 — step-through replay shipped) |
+| **Existing assets** | [`buildReplayTimeline.ts`](../src/runtime/replay/buildReplayTimeline.ts), [`replayController.ts`](../src/runtime/replay/replayController.ts), [`provenanceChain.ts`](../src/runtime/replay/provenanceChain.ts), [`ReplayPanel.tsx`](../src/components/replay/ReplayPanel.tsx); wired Replay entry points |
+| **Gap** | Branch-point exploration; graph status time-travel; Memora integration |
+| **Priority** | Year 2 tail |
 
 ---
 

@@ -193,8 +193,11 @@ export const tauriLocalStore: LocalStore = {
     const rows = await invoke<Record<string, unknown>[]>('store_list_events', {
       input: {
         projectId: options.projectId,
+        nodeId: options.nodeId,
+        sessionId: options.sessionId,
         limit: options.limit,
         offset: options.offset,
+        order: options.order,
       },
     })
     return rows.map(mapEvent)

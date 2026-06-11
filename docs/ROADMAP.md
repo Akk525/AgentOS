@@ -12,8 +12,8 @@ For current vs target status per pillar, see [GAP_ANALYSIS.md](GAP_ANALYSIS.md).
 |-------|---------|---------|
 | **Done** | v0.x – v2.1 | Foundation UI, orchestration shell, desktop bridge, real worktrees/commands |
 | **A — Foundation** | Complete | Persistence, task graph engine, goal entry, graph-backed Observatory |
-| **B — Year 1** | Current → 12 months | Real agent loop, governance, merge approval, working app |
-| **C — Year 2** | 12 → 24 months | Replay, memory, skills executor, scale |
+| **B — Year 1** | Complete | Real agent loop, governance, merge approval, working app |
+| **C — Year 2** | Current → 24 months | Replay, memory, skills executor, scale |
 | **Deferred** | Beyond 24 months | Enterprise, cloud runners, remote execution |
 
 ---
@@ -107,6 +107,15 @@ What shipped:
 ### Sprint 4 — Phase A tail (complete)
 
 **Shipped:** Orchestrator sessions from graph, session shell writes, derived dashboard metrics, New Project CTA.
+
+| What shipped | Where |
+|--------------|-------|
+| `graphToActiveSessions()` projection | `src/runtime/orchestrationProjection.ts` |
+| Removed mock orchestrator boot simulation | `src/runtime/orchestratorRuntime.ts` |
+| `ensureTaskSessionShells()` on plan create | `src/runtime/sessionStore.ts`, `mockPlanner.ts` |
+| Dynamic RuntimeGraph layout | `src/components/orchestration/RuntimeGraph.tsx` |
+| Derived dashboard metrics + timeline activity | `src/components/dashboard/Dashboard.tsx` |
+| New Project replaces New Task modal | `TopBar.tsx`, `AppShell.tsx` |
 
 ### Sprint 5 — Inference layer + real planner (complete)
 
@@ -207,14 +216,27 @@ What shipped:
 - Escalation approve re-runs the pending command; builder streams live output (Ollama)
 - Phase B complete → Phase C (replay, memory, skills) is next
 
+### Sprint 10 — Replay engine (complete)
+
+**Shipped:** Step-through provenance from durable event log + session traces; Replay panel wired to Observatory.
+
 | What shipped | Where |
 |--------------|-------|
-| `graphToActiveSessions()` projection | `src/runtime/orchestrationProjection.ts` |
-| Removed mock orchestrator boot simulation | `src/runtime/orchestratorRuntime.ts` |
-| `ensureTaskSessionShells()` on plan create | `src/runtime/sessionStore.ts`, `mockPlanner.ts` |
-| Dynamic RuntimeGraph layout | `src/components/orchestration/RuntimeGraph.tsx` |
-| Derived dashboard metrics + timeline activity | `src/components/dashboard/Dashboard.tsx` |
-| New Project replaces New Task modal | `TopBar.tsx`, `AppShell.tsx` |
+| Event query filters + asc order | `store.rs`, `localStoreTypes.ts`, tauri/memory stores |
+| Replay timeline + controller | `src/runtime/replay/buildReplayTimeline.ts`, `replayController.ts` |
+| Provenance chain + export bundle | `src/runtime/replay/provenanceChain.ts` |
+| Replay UI + context | `ReplayPanel.tsx`, `ReplayContext.tsx` |
+| Wired Replay stubs | `AgentSession.tsx`, `SessionControls.tsx`, `CommandPalette.tsx`, `SessionArchivePanel.tsx` |
+| Projection fixes | `eventProjection.ts` |
+| *(stretch)* OpenAI/Anthropic streaming | `openaiCompatibleBridge.ts` `stream()` |
+| *(stretch)* Epic cost on Kanban | `graphProjections.ts`, `TaskCard.tsx` |
+
+**Behaviour today:**
+- Replay any task/epic: step forward/back through plan → build → test → review → merge
+- Diff and token/cost visible at relevant steps
+- Provenance chain answers “why does this feature exist?”
+- Orchestrator timeline tab includes “Replay feature” for epic scope
+- OpenAI/Anthropic builder streaming when provider supports `stream()`
 
 ### Deliverables
 
@@ -286,7 +308,7 @@ Phase A complete (persistence + graph engine).
 
 ## Phase C — Year 2 Success (~12 → 24 months)
 
-**Status:** Future
+**Status:** Current (Sprint 10 — replay engine shipped)
 
 **Goal:** Maintain large repositories over months with replay, memory, and minimal supervision.
 
@@ -303,7 +325,7 @@ Maps to PRD Year 2 success criteria:
 
 | Deliverable | Pillars | Key work |
 |-------------|---------|----------|
-| Replay engine | 6 | Record from event log; step-through UI; branch exploration |
+| Replay engine | 6 | **Done (Sprint 10)** — Step-through UI from event log + session traces; branch exploration deferred |
 | Agent memory | 11 | Per-agent local memory; cross-task recall; Memora integration API |
 | Skills executor | 10 | Load SKILL.md-style skills; bind to agents at assignment |
 | Observatory consolidation | 15 | Unified dashboard; graph-centric navigation; replay + memory panels |

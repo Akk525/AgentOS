@@ -94,7 +94,7 @@ class OrchestratorRuntime {
 
       const events = await store.listEvents({
         projectId: this.activeProjectId,
-        limit: 200,
+        limit: 500,
       })
 
       const timeline = events.length > 0

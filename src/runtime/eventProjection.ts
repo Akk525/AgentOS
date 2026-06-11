@@ -18,6 +18,9 @@ const STORED_TO_ORCHESTRATOR: Record<string, OrchestratorEventType> = {
   session_queued: 'session_queued',
   merge_conflict: 'merge_conflict',
   merge_completed: 'merge_completed',
+  usage_recorded: 'usage_recorded',
+  merge_conflict_fix_spawned: 'merge_conflict_fix_spawned',
+  test_failure_fix_spawned: 'test_failure_fix_spawned',
   blocker_detected: 'blocker_detected',
   blocker_resolved: 'blocker_resolved',
   escalated: 'escalated',
@@ -33,12 +36,14 @@ export function storedEventToOrchestrator(ev: StoredEvent): OrchestratorEvent {
   return {
     id: ev.id,
     sessionId: ev.sessionId ?? undefined,
+    nodeId: ev.nodeId ?? undefined,
     agentName: (payload.agentName as string) ?? undefined,
     workspaceName: (payload.workspaceName as string) ?? undefined,
-    type: STORED_TO_ORCHESTRATOR[ev.type] ?? 'plan_created',
+    type: STORED_TO_ORCHESTRATOR[ev.type] ?? (ev.type as OrchestratorEventType),
     message: ev.message,
     timestamp: ev.timestamp,
     severity: severity(ev.severity),
+    payload,
   }
 }
 

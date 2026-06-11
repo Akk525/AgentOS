@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { GitBranch, TestTube, Clock, AlertCircle, Zap, UserCheck, Loader2 } from 'lucide-react'
+import { GitBranch, TestTube, Clock, AlertCircle, Zap, UserCheck, Loader2, Coins } from 'lucide-react'
 import { StatusPill } from '../shared/StatusPill'
 import { AgentAvatar } from '../shared/AgentAvatar'
 import { useRuntime } from '../../context/RuntimeContext'
@@ -216,6 +216,16 @@ export function TaskCard({ task, onClick, canRun = false, onRun, isCoordinatorRu
               />
             </div>
             <span className="text-[10px] font-mono text-amber-500/70">{Math.round(task.confidenceScore * 100)}%</span>
+          </div>
+        )}
+
+        {(task.costUsd !== undefined || task.epicCostUsd !== undefined) && (
+          <div className="mt-2 flex items-center gap-2 text-[9px] font-mono text-slate-600">
+            <Coins size={8} className="text-amber-700/80" />
+            {task.costUsd !== undefined && <span>${task.costUsd.toFixed(3)} task</span>}
+            {task.epicCostUsd !== undefined && (
+              <span className="text-slate-700">${task.epicCostUsd.toFixed(3)} epic</span>
+            )}
           </div>
         )}
 

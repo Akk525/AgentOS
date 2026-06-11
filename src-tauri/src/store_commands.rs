@@ -209,8 +209,11 @@ pub struct UpsertSessionInput {
 #[serde(rename_all = "camelCase")]
 pub struct ListEventsInput {
     pub project_id: Option<String>,
+    pub node_id: Option<String>,
+    pub session_id: Option<String>,
     pub limit: Option<u32>,
     pub offset: Option<u32>,
+    pub order: Option<String>,
 }
 
 // ── Mappers ──────────────────────────────────────────────────────────────────
@@ -464,7 +467,15 @@ pub fn store_append_event(input: AppendEventInput) -> Result<StoredEventDto, Str
 pub fn store_list_events(input: ListEventsInput) -> Result<Vec<StoredEventDto>, String> {
     let limit = input.limit.unwrap_or(100);
     let offset = input.offset.unwrap_or(0);
-    let rows = db()?.list_events(input.project_id.as_deref(), limit, offset)?;
+    let order_asc = input.order.as_deref() == Some("asc");
+    let rows = db()?.list_events(
+        input.project_id.as_deref(),
+        input.node_id.as_deref(),
+        input.session_id.as_deref(),
+        order_asc,
+        limit,
+        offset,
+    )?;
     rows.into_iter().map(event_dto).collect()
 }
 

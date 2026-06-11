@@ -19,6 +19,7 @@ import { useRuntime } from '../../context/RuntimeContext'
 import { useExecution } from '../../context/ExecutionContext'
 import { useGraphTasks } from '../../hooks/useGraphTasks'
 import { useGraphSession } from '../../hooks/useGraphSession'
+import { useReplay } from '../../hooks/useReplay'
 import { getTaskAgentDisplay } from '../../lib/taskAgent'
 import type { Task } from '../../types'
 
@@ -35,6 +36,12 @@ export function AgentSession({ task: propTask, onBack }: AgentSessionProps) {
   const agent = task ? getTaskAgentDisplay(task) : null
   const { session, loading: sessionLoading, fromStore } = useGraphSession(task?.id)
   const { approveReview, rejectReview, requestReviewChanges } = useExecution()
+  const { enterReplay } = useReplay()
+
+  const handleReplay = () => {
+    if (!task) return
+    void enterReplay({ nodeId: task.id })
+  }
   const [activeTab, setActiveTab] = useState<Tab>(task?.status === 'review' ? 'review' : 'terminal')
   const [injectOpen, setInjectOpen] = useState(false)
 
@@ -178,7 +185,9 @@ export function AgentSession({ task: propTask, onBack }: AgentSessionProps) {
               <span>{Math.round(task.riskScore * 100)}% risk</span>
             </div>
           )}
-          <GlowButton variant="ghost" size="sm" icon={<Play size={11} />}>Replay</GlowButton>
+          <GlowButton variant="ghost" size="sm" icon={<Play size={11} />} onClick={handleReplay}>
+            Replay
+          </GlowButton>
         </div>
       </div>
 
@@ -191,7 +200,7 @@ export function AgentSession({ task: propTask, onBack }: AgentSessionProps) {
         onTakeover={handleTakeover}
         onReturnToAgent={handleReturnToAgent}
         onRerunTests={() => {}}
-        onReplay={() => {}}
+        onReplay={handleReplay}
         isRunning={isRunning}
       />
 
@@ -343,7 +352,12 @@ export function AgentSession({ task: propTask, onBack }: AgentSessionProps) {
           </div>
 
           <PermissionsPanel />
-          <SessionArchivePanel />
+          <SessionArchivePanel
+            onReplay={archive => {
+              const match = tasks.find(t => t.title === archive.taskTitle)
+              if (match) void enterReplay({ nodeId: match.id })
+            }}
+          />
         </div>
       </div>
 

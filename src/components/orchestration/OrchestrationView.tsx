@@ -10,6 +10,10 @@ import { ReviewSessionPanel } from './ReviewSessionPanel'
 import { OrchestratorTimeline } from './OrchestratorTimeline'
 import { RuntimePlanView } from './RuntimePlanView'
 import { RuntimeReasoningPanel } from './RuntimeReasoningPanel'
+import { useReplay } from '../../hooks/useReplay'
+import { useTaskGraph } from '../../context/TaskGraphContext'
+import { GlowButton } from '../shared/GlowButton'
+import { Play } from 'lucide-react'
 
 type OrchestratorTab = 'plan' | 'graph' | 'sessions' | 'queue' | 'reviews' | 'reasoning' | 'timeline'
 
@@ -26,6 +30,8 @@ const TABS: { id: OrchestratorTab; label: string; icon: React.ReactNode }[] = [
 export function OrchestrationView() {
   const [tab, setTab] = useState<OrchestratorTab>('plan')
   const { blockers, reasoning } = useOrchestrator()
+  const { enterReplay } = useReplay()
+  const { activeProject, nodes } = useTaskGraph()
 
   const activeBlockers = blockers.filter(b => !b.resolved).length
   const criticalReasoning = reasoning.filter(r => r.severity === 'critical').length
@@ -83,7 +89,29 @@ export function OrchestrationView() {
           {tab === 'queue'     && <RuntimeQueuePanel />}
           {tab === 'reviews'   && <ReviewSessionPanel />}
           {tab === 'reasoning' && <RuntimeReasoningPanel />}
-          {tab === 'timeline'  && <OrchestratorTimeline />}
+          {tab === 'timeline' && (
+            <div className="flex flex-col h-full">
+              <div className="flex items-center justify-between px-4 py-2 border-b border-white/[0.05] flex-shrink-0">
+                <span className="text-[10px] font-mono text-slate-600">Project event timeline</span>
+                {activeProject && (
+                  <GlowButton
+                    variant="secondary"
+                    size="sm"
+                    icon={<Play size={11} />}
+                    onClick={() => {
+                      const epic = nodes.find(n => n.type === 'epic')
+                      void enterReplay(epic ? { epicId: epic.id } : {})
+                    }}
+                  >
+                    Replay feature
+                  </GlowButton>
+                )}
+              </div>
+              <div className="flex-1 overflow-hidden">
+                <OrchestratorTimeline />
+              </div>
+            </div>
+          )}
         </motion.div>
       </div>
     </div>

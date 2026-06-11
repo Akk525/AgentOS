@@ -88,6 +88,8 @@ export interface Task {
   costUsd?: number
   mergeConflict?: boolean
   blockReason?: string
+  parentId?: string | null
+  epicCostUsd?: number
 }
 
 export interface Agent {
@@ -498,12 +500,14 @@ export type OrchestratorEventSeverity = 'info' | 'warning' | 'success' | 'error'
 export interface OrchestratorEvent {
   id: string
   sessionId?: string
+  nodeId?: string
   agentName?: string
   workspaceName?: string
   type: OrchestratorEventType
   message: string
   timestamp: string
   severity: OrchestratorEventSeverity
+  payload?: Record<string, unknown>
 }
 
 // ── v1.0 — Planning + Delegation ─────────────────────────────────────────────

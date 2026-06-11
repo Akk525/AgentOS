@@ -57,8 +57,11 @@ export interface UpsertSessionInput {
 
 export interface ListEventsOptions {
   projectId?: string | null
+  nodeId?: string | null
+  sessionId?: string | null
   limit?: number
   offset?: number
+  order?: 'asc' | 'desc'
 }
 
 export interface LocalStore {

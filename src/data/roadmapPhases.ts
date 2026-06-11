@@ -60,7 +60,7 @@ export const ROADMAP_PHASES: RoadmapPhase[] = [
     status: 'current',
     description: 'Replay, memory, skills, and multi-month project maintenance with minimal supervision.',
     items: [
-      'Replay engine — step-through provenance for any feature',
+      '✓ Replay engine — step-through provenance for any feature — Sprint 10',
       'Persistent agent memory + Memora integration API',
       'Skills framework executor (SKILL.md-compatible)',
       'Observatory consolidation — unified graph-centric dashboard',
