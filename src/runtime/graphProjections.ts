@@ -58,6 +58,10 @@ export function graphNodesToTasks(nodes: GraphNode[], project?: Project | null):
         linesRemoved: meta.linesRemoved as number | undefined,
         tags: meta.tags as string[] | undefined,
         priority: meta.priority as Task['priority'],
+        tokensUsed: meta.tokensUsed as number | undefined,
+        costUsd: meta.costUsd as number | undefined,
+        mergeConflict: meta.mergeConflict as boolean | undefined,
+        blockReason: meta.blockReason as string | undefined,
       }
     })
 }

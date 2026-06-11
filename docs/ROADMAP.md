@@ -185,6 +185,28 @@ What shipped:
 - **Manual:** auto-run off; user runs each stage; merge still requires approve
 - Reject archives worktree; merge conflict → `blocked` + `merge_conflict` timeline event
 
+### Sprint 9 — Cost accounting + Phase B close (complete)
+
+**Shipped:** Real token metering from provider responses; per-task/epic/project cost rollups; Dashboard and status bar on live data; merge-conflict fix spawn; post-create governance mode; Ollama streaming for builder runs.
+
+| What shipped | Where |
+|--------------|-------|
+| Model pricing + `recordTokenUsage()` | `src/runtime/cost/modelPricing.ts`, `recordTokenUsage.ts` |
+| Epic/project rollups | `src/runtime/cost/costRollup.ts`, `useProjectCost.ts` |
+| Agent persist wiring | `persistPlan.ts`, `persistExecution.ts`, `reviewerAgent.ts`, `builderAgent.ts` |
+| Observatory cost display | `Dashboard.tsx`, `RuntimeStatusBar.tsx` |
+| Merge conflict fix spawn | `spawnMergeFixTask.ts`, `mergeAfterApproval.ts`, `ReviewPanel.tsx` |
+| Post-create governance mode | `store_update_project`, `RuntimeStatusBar.tsx` |
+| Ollama streaming inference | `ollamaBridge.ts` `stream()`, `streamForRole()`, builder live session |
+
+**Behaviour today:**
+- Planner/builder/reviewer LLM calls accumulate tokens + estimated USD on nodes, sessions, and events
+- Dashboard shows real project cost; mock `$12.40` removed
+- Epic rollup includes planner usage + child task totals
+- Merge conflict spawns builder fix task; governance mode editable after create
+- Escalation approve re-runs the pending command; builder streams live output (Ollama)
+- Phase B complete → Phase C (replay, memory, skills) is next
+
 | What shipped | Where |
 |--------------|-------|
 | `graphToActiveSessions()` projection | `src/runtime/orchestrationProjection.ts` |
@@ -220,7 +242,7 @@ None — this phase unblocks everything else.
 
 ## Phase B — Year 1 Success (~3 → 12 months)
 
-**Status:** Current (Sprint 8 — governance + merge gates shipped)
+**Status:** Complete (Sprint 9 — cost accounting + hardening shipped)
 
 **Goal:** A developer can describe a project, supervise agents building it, review diffs, approve merges, and obtain a working application.
 
@@ -246,7 +268,7 @@ Maps to PRD Year 1 success criteria:
 | Worktree lifecycle | 4 | Create, track, archive, merge with approval |
 | Governance modes | 7 | Manual / Assisted / Autonomous / Full Auto selector |
 | Approval gates | 8 | Merge, dependency install, file delete — configurable per mode |
-| Cost accounting | 13 | Real token costs per task/epic from provider responses |
+| Cost accounting | 13 | **Done (Sprint 9)** — Real token costs per task/epic/project from provider responses |
 | Mock → real migration | 15 | Incrementally replace `mock*` data with graph projections |
 
 ### Success criteria

@@ -7,6 +7,7 @@ import type {
   ProjectWithGraph,
   StoredEvent,
   StoredSession,
+  UpdateProjectInput,
 } from '../../types/graph'
 import type {
   ListEventsOptions,
@@ -94,6 +95,19 @@ export const memoryLocalStore: LocalStore = {
     }
     projects.set(project.id, project)
     return project
+  },
+
+  async updateProject(input: UpdateProjectInput): Promise<Project> {
+    const existing = projects.get(input.projectId)
+    if (!existing) throw new Error(`Project not found: ${input.projectId}`)
+    const updated: Project = {
+      ...existing,
+      title: input.title ?? existing.title,
+      governanceMode: input.governanceMode ?? existing.governanceMode,
+      updatedAt: now(),
+    }
+    projects.set(updated.id, updated)
+    return updated
   },
 
   async getProject(projectId: string): Promise<ProjectWithGraph | null> {

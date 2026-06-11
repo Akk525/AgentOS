@@ -5,7 +5,11 @@ import { runTestWriterForNode } from './agents/testWriterAgent'
 import { persistReviewVerdict } from './execution/persistExecution'
 import { spawnReviewFixTask } from './execution/spawnReviewFixTask'
 import { getAutoRunEnabled, getRepoPath, setAutoRunEnabled, setRepoPath } from './execution/executionConfig'
-import { shouldAutoActOnReviewerVerdict } from './governance/governancePolicy'
+import {
+  autoRunEnabledByDefault,
+  shouldAutoActOnReviewerVerdict,
+} from './governance/governancePolicy'
+import type { GovernanceMode } from '../types/graph'
 import { getNodeRole } from './graphWorktree'
 import { taskGraphEngine } from './taskGraphEngine'
 import { orchestratorRuntime } from './orchestratorRuntime'
@@ -136,6 +140,16 @@ class ExecutionCoordinator {
     this.refreshPausedReason()
     if (enabled && !this.state.running) {
       void this.tick()
+    }
+  }
+
+  applyGovernanceMode(mode: GovernanceMode): void {
+    if (mode === 'manual') {
+      this.setAutoRun(false)
+      return
+    }
+    if (autoRunEnabledByDefault(mode)) {
+      this.setAutoRun(true)
     }
   }
 

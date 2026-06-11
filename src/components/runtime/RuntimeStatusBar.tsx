@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Activity, Cpu, Layers, AlertTriangle, CheckCircle2, ChevronRight, Wifi, WifiOff, RefreshCw } from 'lucide-react'
 import { useRuntime } from '../../context/RuntimeContext'
@@ -6,6 +5,11 @@ import { useExecution } from '../../context/ExecutionContext'
 import { useGraphTasks } from '../../hooks/useGraphTasks'
 import { useTaskGraph } from '../../context/TaskGraphContext'
 import { governanceModeLabel } from '../../runtime/governance/governancePolicy'
+import { taskGraphEngine } from '../../runtime/taskGraphEngine'
+import { executionCoordinator } from '../../runtime/executionCoordinator'
+import type { GovernanceMode } from '../../types/graph'
+import { useProjectCost } from '../../hooks/useProjectCost'
+import { formatCostUsd } from '../../runtime/cost/costRollup'
 import { getTaskAgentDisplay } from '../../lib/taskAgent'
 import type { SessionMode } from '../../types'
 import type { RuntimeConnectionStatus } from '../../runtime/runtimeTypes'
@@ -48,8 +52,7 @@ const connectionConfig: Record<RuntimeConnectionStatus, { icon: React.ReactNode;
 export function RuntimeStatusBar() {
   const { sessionMode, runtimePhase, activeTaskId, metrics, connectionStatus } = useRuntime()
   const { autoRun, setAutoRun, running: coordinatorRunning, pausedReason, activeNodeId } = useExecution()
-  const [tokPerSec, setTokPerSec] = useState(metrics.tokensPerSec)
-  const [tick, setTick] = useState(0)
+  const projectCost = useProjectCost()
 
   const { tasks } = useGraphTasks()
   const { activeProject } = useTaskGraph()
@@ -57,15 +60,6 @@ export function RuntimeStatusBar() {
   const reviewTasks  = tasks.filter(t => t.status === 'review')
   const activeTask   = activeTaskId ? tasks.find(t => t.id === activeTaskId) : runningTasks[0]
   const activeAgent  = activeTask ? getTaskAgentDisplay(activeTask) : null
-
-  // Simulate live token throughput jitter
-  useEffect(() => {
-    const id = setInterval(() => {
-      setTokPerSec(v => Math.max(80, Math.min(200, v + Math.floor((Math.random() - 0.48) * 12))))
-      setTick(t => t + 1)
-    }, 1800)
-    return () => clearInterval(id)
-  }, [])
 
   const modeConfig = sessionModeLabel[sessionMode]
 
@@ -97,9 +91,23 @@ export function RuntimeStatusBar() {
 
         {activeProject && (
           <>
-            <span className="text-[10px] font-mono text-slate-600">
-              {governanceModeLabel(activeProject.governanceMode)}
-            </span>
+            <select
+              value={activeProject.governanceMode}
+              onChange={e => {
+                const mode = e.target.value as GovernanceMode
+                void taskGraphEngine
+                  .updateProject({ projectId: activeProject.id, governanceMode: mode })
+                  .then(() => executionCoordinator.applyGovernanceMode(mode))
+              }}
+              className="text-[10px] font-mono text-slate-500 bg-transparent border border-white/[0.06] rounded px-1.5 py-0.5 outline-none focus:border-cyan-500/30 cursor-pointer"
+              title="Governance mode"
+            >
+              {(['manual', 'assisted', 'autonomous', 'full_auto'] as GovernanceMode[]).map(mode => (
+                <option key={mode} value={mode} className="bg-[#0a0a10] text-slate-300">
+                  {governanceModeLabel(mode)}
+                </option>
+              ))}
+            </select>
             <div className="w-px h-3.5 bg-white/[0.06]" />
           </>
         )}
@@ -121,20 +129,13 @@ export function RuntimeStatusBar() {
 
       {/* Center: metrics */}
       <div className="flex items-center gap-4 mx-6">
-        {/* Token throughput */}
+        {/* Project token total */}
         <div className="flex items-center gap-1.5 text-[10px] font-mono">
           <Cpu size={9} className="text-slate-600" />
-          <AnimatePresence mode="wait">
-            <motion.span
-              key={tick}
-              initial={{ opacity: 0.5 }}
-              animate={{ opacity: 1 }}
-              className="text-slate-500 tabular-nums w-8 text-right"
-            >
-              {tokPerSec}
-            </motion.span>
-          </AnimatePresence>
-          <span className="text-slate-700">tok/s</span>
+          <span className="text-slate-500 tabular-nums">
+            {projectCost.tokensUsed > 0 ? projectCost.tokensUsed.toLocaleString() : '—'}
+          </span>
+          <span className="text-slate-700">tokens</span>
         </div>
 
         {/* Context window */}
@@ -207,7 +208,9 @@ export function RuntimeStatusBar() {
         <div className="w-px h-3.5 bg-white/[0.06]" />
 
         {/* Cost */}
-        <span className="text-[10px] font-mono text-slate-600">$12.40 today</span>
+        <span className="text-[10px] font-mono text-slate-600">
+          {formatCostUsd(projectCost.costUsd)} project
+        </span>
 
         {/* Provider */}
         <span className="text-[10px] font-mono text-slate-700">anthropic</span>

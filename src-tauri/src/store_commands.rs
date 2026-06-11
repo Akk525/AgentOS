@@ -149,6 +149,14 @@ pub struct CreateProjectInput {
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct UpdateProjectInput {
+    pub project_id: String,
+    pub title: Option<String>,
+    pub governance_mode: Option<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct UpsertNodeInput {
     pub id: Option<String>,
     pub project_id: String,
@@ -334,6 +342,18 @@ pub fn store_create_project(input: CreateProjectInput) -> Result<ProjectDto, Str
     let id = uid("proj");
     let mode = input.governance_mode.unwrap_or_else(|| "assisted".to_string());
     let row = db()?.create_project(&id, &input.title, &input.goal_text, &mode, &now)?;
+    Ok(project_dto(row))
+}
+
+#[tauri::command]
+pub fn store_update_project(input: UpdateProjectInput) -> Result<ProjectDto, String> {
+    let now = now_iso();
+    let row = db()?.update_project(
+        &input.project_id,
+        input.title.as_deref(),
+        input.governance_mode.as_deref(),
+        &now,
+    )?;
     Ok(project_dto(row))
 }
 

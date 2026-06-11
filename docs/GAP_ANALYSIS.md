@@ -17,12 +17,12 @@ Current implementation status mapped against the [future-state PRD](PRD.md). Thi
 | 5 | Execution Timeline | ⚠️ Partial | Durable store + hydrate; sessions still simulated |
 | 6 | Replay Engine | ❌ Missing | UI placeholders only |
 | 7 | Human Governance | ⚠️ Partial | Governance modes enforced at runtime (Sprint 8); audit/replay integration deferred |
-| 8 | Approval Gates | ⚠️ Partial | Merge gate wired to real git (Sprint 8); escalation re-run + file-delete gates deferred |
+| 8 | Approval Gates | ⚠️ Partial | Merge gate + conflict fix spawn (Sprint 8–9); file-delete gates deferred |
 | 9 | Multi-Model Runtime | ⚠️ Partial | Inference + planner (S5); builder/reviewer execution |
 | 10 | Skills Framework | ⚠️ Partial | Static catalog |
 | 11 | Persistent Agent Memory | ❌ Missing | — |
 | 12 | Testing & Verification | ⚠️ Partial | Test-writer agent runs tests on graph (Sprint 7); coverage gates deferred |
-| 13 | Cost Accounting | ⚠️ Partial | Mock counters in UI |
+| 13 | Cost Accounting | ⚠️ Partial | Real metering + rollups (Sprint 9); budgets deferred |
 | 14 | Local First | ⚠️ Partial | Tauri-first + SQLite store (Sprint 1); orchestrator not hydrated |
 | 15 | Agent Observatory | ⚠️ Mostly exists | Comprehensive shell; LogsView fixed; storage diagnostics added |
 
@@ -133,8 +133,8 @@ flowchart TB
 | | |
 |---|---|
 | **Status** | ⚠️ Partial |
-| **Existing assets** | [`governancePolicy.ts`](../src/runtime/governance/governancePolicy.ts); mode selector at project create; coordinator respects manual/auto modes; status bar mode badge |
-| **Gap** | Post-create mode change; override history; settings toggles still unwired |
+| **Existing assets** | [`governancePolicy.ts`](../src/runtime/governance/governancePolicy.ts); mode at create + post-create selector in status bar (Sprint 9); coordinator `applyGovernanceMode` |
+| **Gap** | Override history; settings toggles still unwired |
 | **Priority** | High — Year 1 merge approval |
 
 ---
@@ -144,8 +144,8 @@ flowchart TB
 | | |
 |---|---|
 | **Status** | ⚠️ Partial |
-| **Existing assets** | Approve → `merge_worktree` + `remove_worktree` (Sprint 8); conflict → `merge_conflict` event; [`ReviewPanel.tsx`](../src/components/review/ReviewPanel.tsx) wired to coordinator |
-| **Gap** | Escalation re-run; dependency-install / file-delete gates; deploy gates |
+| **Existing assets** | Approve → `merge_worktree` + `remove_worktree` (Sprint 8); conflict → fix task spawn (Sprint 9); escalation re-run on approve; [`ReviewPanel.tsx`](../src/components/review/ReviewPanel.tsx) merge-conflict banner |
+| **Gap** | Dependency-install / file-delete gates; deploy gates |
 | **Priority** | High — Year 1 criterion #6 |
 
 ---
@@ -198,10 +198,10 @@ flowchart TB
 
 | | |
 |---|---|
-| **Status** | ⚠️ Partial |
-| **Existing assets** | `tokensUsed`, `costUsd` fields; dashboard display; `tickTokens()` mock in orchestrator |
-| **Gap** | No provider-reported token usage; no per-epic rollup; no budgets |
-| **Priority** | Medium — Year 1 needs real metering |
+| **Status** | ⚠️ Partial (Sprint 9 — real metering shipped) |
+| **Existing assets** | `recordTokenUsage()` + `modelPricing.ts`; epic/project rollups in `costRollup.ts`; Dashboard + StatusBar on live totals; `usage_recorded` events |
+| **Gap** | Budget alerts; cost-aware routing; historical trends (Year 2) |
+| **Priority** | Medium — budgets in Year 2 |
 
 ---
 

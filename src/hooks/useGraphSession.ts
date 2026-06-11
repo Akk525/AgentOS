@@ -4,6 +4,7 @@ import { useTaskGraph } from '../context/TaskGraphContext'
 import { getLocalStore } from '../runtime/store'
 import { storedSessionToSessionData } from '../runtime/sessionProjection'
 import { taskGraphEngine } from '../runtime/taskGraphEngine'
+import { executionCoordinator } from '../runtime/executionCoordinator'
 import type { SessionData } from '../types'
 
 export function useGraphSession(taskId: string | undefined): {
@@ -53,9 +54,17 @@ export function useGraphSession(taskId: string | undefined): {
       if (!cancelled) void load()
     })
 
+    const poll = setInterval(() => {
+      const { running, activeNodeId } = executionCoordinator.getState()
+      if (running && activeNodeId === taskId && !cancelled) {
+        void load()
+      }
+    }, 500)
+
     return () => {
       cancelled = true
       unsub()
+      clearInterval(poll)
     }
   }, [taskId, activeProject?.id])
 

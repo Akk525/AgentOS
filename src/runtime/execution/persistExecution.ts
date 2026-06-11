@@ -2,6 +2,7 @@ import type { GraphNode, Project } from '../../types/graph'
 import type { DiffFile, SessionData, TraceEvent } from '../../types'
 import type { GraphEdge } from '../../types/graph'
 import type { TokenUsage } from '../inference/types'
+import { recordTokenUsage } from '../cost/recordTokenUsage'
 import type { ParsedTestOutput } from '../testOutputParser'
 import { findUpstreamNodeByRole } from '../graphWorktree'
 import { getLocalStore } from '../store'
@@ -38,6 +39,22 @@ export async function persistBuilderResult(input: PersistBuilderResultInput): Pr
     actor: 'agent',
   }
 
+  let usageTotals = { totalTokens: 0, totalCostUsd: 0 }
+  if (input.usage) {
+    const meta = input.node.metadata as Record<string, unknown>
+    const recorded = await recordTokenUsage({
+      projectId: input.project.id,
+      nodeId: input.node.id,
+      sessionId: input.sessionId,
+      providerId: (meta.provider as string) ?? 'anthropic',
+      modelId: (meta.model as string) ?? 'claude-sonnet-4-6',
+      role: 'builder',
+      usage: input.usage,
+      message: `Builder used ${input.usage.totalTokens.toLocaleString()} tokens`,
+    })
+    usageTotals = { totalTokens: recorded.totalTokens, totalCostUsd: recorded.totalCostUsd }
+  }
+
   const existing = await updateSessionData(input.project.id, input.node.id, {
     events: [traceEvent],
     diff: input.diff,
@@ -51,14 +68,12 @@ export async function persistBuilderResult(input: PersistBuilderResultInput): Pr
       testsFailed: 0,
       unresolvedRisks: [],
       confidence: 0.85,
-      tokensUsed: input.usage?.totalTokens,
+      tokensUsed: usageTotals.totalTokens || input.usage?.totalTokens,
+      costUsd: usageTotals.totalCostUsd || undefined,
     },
-    totalTokens: input.usage?.totalTokens,
+    totalTokens: usageTotals.totalTokens || input.usage?.totalTokens,
+    totalCostUsd: usageTotals.totalCostUsd || undefined,
   })
-
-  const priorTokens = (input.node.metadata.tokensUsed as number) ?? 0
-  const priorCost = (input.node.metadata.costUsd as number) ?? 0
-  const addedTokens = input.usage?.totalTokens ?? 0
 
   await taskGraphEngine.transitionNode(
     input.node.id,
@@ -70,8 +85,6 @@ export async function persistBuilderResult(input: PersistBuilderResultInput): Pr
       linesAdded: input.linesAdded,
       linesRemoved: input.linesRemoved,
       builderSummary: input.summary,
-      tokensUsed: priorTokens + addedTokens,
-      costUsd: priorCost,
       completedAt: new Date().toISOString(),
     },
     { assignedSessionId: input.sessionId, branch: input.branchName },

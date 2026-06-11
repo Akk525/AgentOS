@@ -44,6 +44,7 @@ class RuntimeEngine {
   private seq = 0
   private activeWorktreePath: string | null = null
   private activeRepoPath: string | null = null
+  private pendingEscalation: PermissionEscalation | null = null
 
   constructor() {
     setTimeout(() => {
@@ -206,6 +207,7 @@ class RuntimeEngine {
         permissionId: 'p-shell-restricted',
         requestedAt: ts(),
       }
+      this.pendingEscalation = escalation
       this.emit('PERMISSION_ESCALATION_REQUIRED', { escalation })
       this.emitLog('warn', 'runtime', `Blocked command: "${command}" — ${reason}`)
       return
@@ -224,6 +226,7 @@ class RuntimeEngine {
         permissionId: 'p-shell-unknown',
         requestedAt: ts(),
       }
+      this.pendingEscalation = escalation
       this.emit('PERMISSION_ESCALATION_REQUIRED', { escalation })
       this.emitLog('warn', 'runtime', `Unknown command requires approval: "${command}"`)
       return
@@ -263,13 +266,20 @@ class RuntimeEngine {
   }
 
   private cmdResolveEscalation(escalationId: string, approved: boolean): void {
+    const pending = this.pendingEscalation
     this.emit('PERMISSION_ESCALATION_RESOLVED', { escalationId, approved })
     if (approved) {
       this.emitNotification('warning', 'Permission granted', 'Agent will proceed with the elevated operation.')
       this.emitTrace({ id: `esc-${Date.now()}`, type: 'system_event', actor: 'human', timestamp: ts(), label: 'Escalation approved — proceeding', success: true })
+      if (pending?.id === escalationId && pending.command) {
+        void this.cmdRunRealCommand(pending.command, this.activeWorktreePath ?? undefined)
+      }
     } else {
       this.emitNotification('info', 'Permission denied', 'Agent will continue without the elevated operation.')
       this.emitTrace({ id: `esc-${Date.now()}`, type: 'system_event', actor: 'human', timestamp: ts(), label: 'Escalation denied — operation skipped', success: true })
+    }
+    if (pending?.id === escalationId) {
+      this.pendingEscalation = null
     }
   }
 

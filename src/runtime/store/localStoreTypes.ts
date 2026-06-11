@@ -7,6 +7,7 @@ import type {
   ProjectWithGraph,
   StoredEvent,
   StoredSession,
+  UpdateProjectInput,
 } from '../../types/graph'
 
 export interface StoreInitResult {
@@ -66,6 +67,7 @@ export interface LocalStore {
   getStatus(): Promise<StoreStatus>
   listProjects(): Promise<Project[]>
   createProject(input: CreateProjectInput): Promise<Project>
+  updateProject(input: UpdateProjectInput): Promise<Project>
   getProject(projectId: string): Promise<ProjectWithGraph | null>
   upsertNode(input: UpsertNodeInput): Promise<GraphNode>
   deleteNode(nodeId: string): Promise<void>

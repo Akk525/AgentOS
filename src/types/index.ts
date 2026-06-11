@@ -84,6 +84,10 @@ export interface Task {
   completionNote?: string
   tags?: string[]
   priority?: 'low' | 'medium' | 'high' | 'critical'
+  tokensUsed?: number
+  costUsd?: number
+  mergeConflict?: boolean
+  blockReason?: string
 }
 
 export interface Agent {
@@ -481,6 +485,9 @@ export type OrchestratorEventType =
   | 'merge_conflict'
   | 'merge_completed'
   | 'plan_created'
+  | 'usage_recorded'
+  | 'merge_conflict_fix_spawned'
+  | 'test_failure_fix_spawned'
   | 'subtask_assigned'
   | 'blocker_detected'
   | 'blocker_resolved'

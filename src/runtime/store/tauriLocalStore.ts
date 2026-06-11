@@ -8,6 +8,7 @@ import type {
   ProjectWithGraph,
   StoredEvent,
   StoredSession,
+  UpdateProjectInput,
 } from '../../types/graph'
 import type {
   ListEventsOptions,
@@ -105,6 +106,17 @@ export const tauriLocalStore: LocalStore = {
       input: {
         title: input.title,
         goalText: input.goalText,
+        governanceMode: input.governanceMode,
+      },
+    })
+    return mapProject(raw)
+  },
+
+  async updateProject(input: UpdateProjectInput): Promise<Project> {
+    const raw = await invoke<Record<string, unknown>>('store_update_project', {
+      input: {
+        projectId: input.projectId,
+        title: input.title,
         governanceMode: input.governanceMode,
       },
     })

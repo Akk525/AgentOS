@@ -4,6 +4,7 @@ import { getDesktopBridge } from '../desktop/desktopBridge'
 import { getRepoPath } from './executionConfig'
 import { getLocalStore } from '../store'
 import { taskGraphEngine } from '../taskGraphEngine'
+import { spawnMergeFixTask } from './spawnMergeFixTask'
 
 export interface MergeAfterApprovalInput {
   reviewerNode: GraphNode
@@ -63,17 +64,20 @@ export async function mergeAfterApproval(
       },
     })
 
-    await taskGraphEngine.transitionNode(reviewerNode.id, 'blocked', {
-      mergeConflict: true,
-      blockReason: 'Merge conflict — resolve manually',
-      mergeTargetBranch: targetBranch,
-    })
-
     if (builderNode) {
       await taskGraphEngine.updateNodeMetadata(builderNode.id, {
         mergeConflict: true,
       })
     }
+
+    const conflictSummary = mergeResult.stderr ?? mergeResult.error ?? 'Merge conflict'
+    await spawnMergeFixTask({
+      project,
+      reviewerNode,
+      conflictSummary,
+      nodes,
+      edges,
+    })
 
     return { outcome: 'conflict', message: mergeResult.error ?? 'Merge conflict' }
   }

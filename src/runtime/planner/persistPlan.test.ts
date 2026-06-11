@@ -74,6 +74,10 @@ async function run() {
   console.assert(created !== undefined, 'plan_created event exists')
   console.assert(created?.payload.totalTokens === 300, 'token usage on event')
 
+  const epic = graph.nodes.find(n => n.type === 'epic')
+  console.assert((epic?.metadata as Record<string, unknown>).tokensUsed === 300, 'token usage on epic metadata')
+  console.assert((epic?.metadata as Record<string, unknown>).costUsd !== undefined, 'cost on epic metadata')
+
   console.log('persistPlan.test.ts: all assertions passed')
 }
 

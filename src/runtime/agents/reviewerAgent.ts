@@ -1,6 +1,7 @@
 import type { GraphEdge, GraphNode, Project } from '../../types/graph'
 import type { TestResult } from '../../types'
 import { completeForRole } from '../inference/inferenceRuntime'
+import { recordTokenUsage } from '../cost/recordTokenUsage'
 import { findUpstreamNodeByRole } from '../graphWorktree'
 import { getLocalStore } from '../store'
 import { updateSessionData, getSessionData } from '../sessionStore'
@@ -158,6 +159,22 @@ export async function runReviewerForNode(
   )
 
   const review = parseReviewerOutput(result.content, sessionId)
+
+  let usageTotals = { totalTokens: 0, totalCostUsd: 0 }
+  if (result.usage) {
+    const recorded = await recordTokenUsage({
+      projectId: project.id,
+      nodeId: node.id,
+      sessionId,
+      providerId: (meta.provider as string) ?? 'openai',
+      modelId: (meta.model as string) ?? 'gpt-4o',
+      role: 'reviewer',
+      usage: result.usage,
+      message: `Reviewer used ${result.usage.totalTokens.toLocaleString()} tokens`,
+    })
+    usageTotals = { totalTokens: recorded.totalTokens, totalCostUsd: recorded.totalCostUsd }
+  }
+
   const testSession = findUpstreamNodeByRole(node, nodes, edges, 'test-writer')
   const testData = testSession
     ? await getSessionData(project.id, testSession.id)
@@ -209,11 +226,13 @@ export async function runReviewerForNode(
       testsFailed,
       unresolvedRisks: review.verdict === 'approve' ? [] : [review.summary],
       confidence: review.verdict === 'approve' ? 0.9 : 0.5,
-      tokensUsed: result.usage?.totalTokens,
+      tokensUsed: usageTotals.totalTokens || result.usage?.totalTokens,
+      costUsd: usageTotals.totalCostUsd || undefined,
     },
+    totalTokens: usageTotals.totalTokens || result.usage?.totalTokens,
+    totalCostUsd: usageTotals.totalCostUsd || undefined,
   })
 
-  const priorTokens = (meta.tokensUsed as number) ?? 0
   await taskGraphEngine.transitionNode(
     node.id,
     'review',
@@ -221,7 +240,6 @@ export async function runReviewerForNode(
       reviewerName: 'Reviewer',
       reviewVerdict: review.verdict,
       reviewSummary: review.summary,
-      tokensUsed: priorTokens + (result.usage?.totalTokens ?? 0),
       startedAt: new Date().toISOString(),
     },
   )

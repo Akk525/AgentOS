@@ -20,6 +20,7 @@ fn main() {
             store_commands::store_get_status,
             store_commands::store_list_projects,
             store_commands::store_create_project,
+            store_commands::store_update_project,
             store_commands::store_get_project,
             store_commands::store_upsert_node,
             store_commands::store_delete_node,

@@ -1,5 +1,5 @@
 import type { ProviderHealth } from '../../types'
-import type { CompletionRequest, CompletionResult } from '../inference/types'
+import type { CompletionRequest, CompletionResult, StreamCallback } from '../inference/types'
 
 // ── ProviderBridge interface ──────────────────────────────────────────────────
 // Each bridge implements this. Swap implementations per provider type.
@@ -11,6 +11,7 @@ export interface ProviderBridge {
   ping(): Promise<ProviderHealth>
   getModels(): Promise<string[]>
   complete(request: CompletionRequest): Promise<CompletionResult>
+  stream?(request: CompletionRequest, onChunk: StreamCallback): Promise<CompletionResult>
 }
 
 export type { ProviderHealth }

@@ -1,4 +1,4 @@
-import type { CreateProjectInput, GraphEdge, GraphNode, Project } from '../types/graph'
+import type { CreateProjectInput, GraphEdge, GraphNode, Project, UpdateProjectInput } from '../types/graph'
 import { computeBlockedNodes, computeReadyNodes } from './graphExecutor'
 import { getLocalStore } from './store'
 import type { UpsertEdgeInput, UpsertNodeInput } from './store/localStoreTypes'
@@ -113,6 +113,14 @@ class TaskGraphEngine {
       severity: 'info',
     })
     await this.loadProject(project.id)
+    return project
+  }
+
+  async updateProject(input: UpdateProjectInput): Promise<Project> {
+    const project = await getLocalStore().updateProject(input)
+    if (this.state.activeProject?.id === project.id) {
+      this.patch({ activeProject: project })
+    }
     return project
   }
 

@@ -73,6 +73,45 @@ export async function updateSessionData(
   return merged
 }
 
+export interface AccumulateSessionUsageInput {
+  addedTokens: number
+  addedCostUsd: number
+  tokensUsed?: number
+  costUsd?: number
+}
+
+export async function accumulateSessionUsage(
+  projectId: string,
+  nodeId: string,
+  input: AccumulateSessionUsageInput,
+): Promise<SessionData> {
+  const store = getLocalStore()
+  const sessions = await store.listSessions(projectId)
+  const existing = sessions.find(s => s.nodeId === nodeId)
+  const base = existing
+    ? storedSessionToSessionData(existing, nodeId)
+    : emptySessionData(nodeId)
+
+  const priorTokens = base.totalTokens ?? 0
+  const priorCost = base.totalCostUsd ?? 0
+  const totalTokens = priorTokens + input.addedTokens
+  const totalCostUsd = priorCost + input.addedCostUsd
+
+  const completionNote = base.completionNote
+    ? {
+        ...base.completionNote,
+        tokensUsed: input.tokensUsed ?? totalTokens,
+        costUsd: input.costUsd ?? totalCostUsd,
+      }
+    : base.completionNote
+
+  return updateSessionData(projectId, nodeId, {
+    totalTokens,
+    totalCostUsd,
+    completionNote,
+  })
+}
+
 export async function getSessionData(
   projectId: string,
   nodeId: string,

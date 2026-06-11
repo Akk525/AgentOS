@@ -26,6 +26,14 @@ export interface CompletionResult {
   providerId: string
 }
 
+export interface StreamChunk {
+  delta: string
+  done?: boolean
+  usage?: TokenUsage
+}
+
+export type StreamCallback = (chunk: StreamChunk) => void
+
 export type InferenceErrorCode = 'unconfigured' | 'inference_failed' | 'invalid_plan'
 
 export class InferenceError extends Error {

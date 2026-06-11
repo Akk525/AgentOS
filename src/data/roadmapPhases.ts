@@ -41,7 +41,7 @@ export const ROADMAP_PHASES: RoadmapPhase[] = [
   {
     version: 'Phase B',
     title: 'Year 1 — Real Agent Loop',
-    status: 'current',
+    status: 'done',
     description: 'Describe a project, supervise agents, review diffs, approve merges, obtain a working app.',
     items: [
       '✓ Multi-model inference + role → model routing — Sprint 5',
@@ -51,13 +51,13 @@ export const ROADMAP_PHASES: RoadmapPhase[] = [
       '✓ Tester agent with failure → new task creation — Sprint 7',
       '✓ Governance modes (Manual / Assisted / Autonomous / Full Auto) — Sprint 8',
       '✓ Approval gates wired to merge flow — Sprint 8',
-      'Real cost accounting from provider token usage',
+      '✓ Real cost accounting from provider token usage — Sprint 9',
     ],
   },
   {
     version: 'Phase C',
     title: 'Year 2 — Provenance & Scale',
-    status: 'future',
+    status: 'current',
     description: 'Replay, memory, skills, and multi-month project maintenance with minimal supervision.',
     items: [
       'Replay engine — step-through provenance for any feature',

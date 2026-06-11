@@ -1,6 +1,8 @@
 import type { GraphNode, Project } from '../../types/graph'
-import { completeForRole } from '../inference/inferenceRuntime'
+import { completeForRole, streamForRole } from '../inference/inferenceRuntime'
+import { providerRegistry } from '../providers/providerRegistry'
 import { InferenceError } from '../inference/types'
+import { sumTokenUsage } from '../cost/modelPricing'
 import { getDesktopBridge } from '../desktop/desktopBridge'
 import { parseRawDiff } from '../diffParser'
 import { BUILDER_SYSTEM_PROMPT, parseBuilderOutput } from './builderSchema'
@@ -71,8 +73,8 @@ export async function runBuilderForNode(
 
   await taskGraphEngine.transitionNode(node.id, 'running')
 
-  const bridge = await getDesktopBridge()
-  const wtResult = await bridge.createWorktree(options.repoPath, branchName, worktreeName)
+  const desktopBridge = await getDesktopBridge()
+  const wtResult = await desktopBridge.createWorktree(options.repoPath, branchName, worktreeName)
   if (!wtResult.success || !wtResult.worktreePath) {
     throw new Error(wtResult.error ?? 'Worktree creation failed')
   }
@@ -83,19 +85,45 @@ export async function runBuilderForNode(
   const modelId = options.modelId ?? (meta.model as string | undefined)
 
   const userPrompt = buildUserPrompt(node, project, worktreePath)
-  let result = await completeForRole(
-    'builder',
-    {
-      messages: [
-        { role: 'system', content: BUILDER_SYSTEM_PROMPT },
-        { role: 'user', content: userPrompt },
-      ],
-      jsonMode: true,
-      temperature: 0.2,
-    },
-    { providerId, modelId },
-  )
+  const inferenceRequest = {
+    messages: [
+      { role: 'system' as const, content: BUILDER_SYSTEM_PROMPT },
+      { role: 'user' as const, content: userPrompt },
+    ],
+    jsonMode: true,
+    temperature: 0.2,
+  }
 
+  let streamBuffer = ''
+  let lastStreamFlush = 0
+  const flushStreamToSession = async (label: string, force = false) => {
+    const now = Date.now()
+    if (!force && now - lastStreamFlush < 400) return
+    lastStreamFlush = now
+    await updateSessionData(project.id, node.id, {
+      terminalOutput: [`${label} (${streamBuffer.length} chars)`, streamBuffer.slice(-800)],
+    })
+  }
+
+  const resolvedProvider = providerId ?? 'anthropic'
+  const providerBridge = providerRegistry.get(resolvedProvider)
+  const runInference = providerBridge?.stream
+    ? () =>
+        streamForRole(
+          'builder',
+          inferenceRequest,
+          chunk => {
+            if (chunk.delta) streamBuffer += chunk.delta
+            void flushStreamToSession('Builder generating')
+          },
+          { providerId, modelId },
+        )
+    : () => completeForRole('builder', inferenceRequest, { providerId, modelId })
+
+  let result = await runInference()
+  await flushStreamToSession('Builder response complete', true)
+
+  const usageParts = [result.usage]
   let output
   try {
     output = parseBuilderOutput(result.content)
@@ -103,7 +131,8 @@ export async function runBuilderForNode(
     if (!(firstErr instanceof InferenceError) || firstErr.code !== 'invalid_plan') {
       throw firstErr
     }
-    result = await completeForRole(
+    streamBuffer = ''
+    const repairResult = await completeForRole(
       'builder',
       {
         messages: [
@@ -117,10 +146,13 @@ export async function runBuilderForNode(
       },
       { providerId, modelId },
     )
+    result = repairResult
+    usageParts.push(repairResult.usage)
     output = parseBuilderOutput(result.content)
   }
+  const combinedUsage = sumTokenUsage(usageParts)
 
-  const writeResult = await bridge.writeWorkspaceFiles(worktreePath, output.files)
+  const writeResult = await desktopBridge.writeWorkspaceFiles(worktreePath, output.files)
   if (!writeResult.success) {
     throw new Error(writeResult.error ?? 'Failed to write files')
   }
@@ -132,7 +164,7 @@ export async function runBuilderForNode(
   ]
 
   for (const cmd of output.commands ?? []) {
-    const cmdResult = await bridge.runWorkspaceCommand(worktreePath, cmd)
+    const cmdResult = await desktopBridge.runWorkspaceCommand(worktreePath, cmd)
     terminalOutput.push(
       `$ ${cmd}`,
       cmdResult.stdout || cmdResult.stderr || `(exit ${cmdResult.exitCode})`,
@@ -142,7 +174,7 @@ export async function runBuilderForNode(
     }
   }
 
-  const diffResult = await bridge.getGitDiff(worktreePath)
+  const diffResult = await desktopBridge.getGitDiff(worktreePath)
   const diff = parseRawDiff(diffResult.rawDiff)
 
   await updateSessionData(project.id, node.id, {
@@ -163,6 +195,6 @@ export async function runBuilderForNode(
     filesChanged: diffResult.changedFiles,
     linesAdded: diffResult.insertions,
     linesRemoved: diffResult.deletions,
-    usage: result.usage,
+    usage: combinedUsage.totalTokens > 0 ? combinedUsage : result.usage,
   })
 }

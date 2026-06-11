@@ -9,6 +9,8 @@ import { RuntimeBadge } from '../shared/RuntimeBadge'
 import { mockAgents } from '../../data/mockAgents'
 import { useOrchestrator } from '../../context/OrchestratorContext'
 import { useGraphTasks } from '../../hooks/useGraphTasks'
+import { useProjectCost } from '../../hooks/useProjectCost'
+import { formatCostUsd } from '../../runtime/cost/costRollup'
 import { getTaskAgentDisplay } from '../../lib/taskAgent'
 import type { View } from '../../App'
 import type { Task } from '../../types'
@@ -58,6 +60,7 @@ const fadeUp = {
 export function Dashboard({ onViewChange, onTaskClick }: DashboardProps) {
   const { tasks } = useGraphTasks()
   const { timeline } = useOrchestrator()
+  const projectCost = useProjectCost()
   const runningTasks = tasks.filter(t => t.status === 'running')
   const reviewTasks  = tasks.filter(t => t.status === 'review')
   const activeAgents = mockAgents.filter(a => a.status === 'running')
@@ -70,6 +73,36 @@ export function Dashboard({ onViewChange, onTaskClick }: DashboardProps) {
   const avgRuntime = runtimeSamples.length > 0
     ? formatMetricRuntime(Math.round(runtimeSamples.reduce((a, b) => a + b, 0) / runtimeSamples.length))
     : '—'
+
+  const weeklyStats = useMemo(() => {
+    const doneTasks = tasks.filter(t => t.status === 'done')
+    const testsWritten = doneTasks.reduce((sum, t) => sum + (t.testsPassed ?? 0), 0)
+    const linesChanged = doneTasks.reduce(
+      (sum, t) => sum + (t.linesAdded ?? 0) + (t.linesRemoved ?? 0),
+      0,
+    )
+    const maxDone = Math.max(doneTasks.length, 1)
+    return [
+      {
+        label: 'Tasks done',
+        value: String(doneTasks.length),
+        bar: Math.min(1, doneTasks.length / maxDone),
+        color: 'bg-emerald-500/40',
+      },
+      {
+        label: 'Tests written',
+        value: String(testsWritten),
+        bar: testsWritten > 0 ? Math.min(1, testsWritten / Math.max(testsWritten, 50)) : 0,
+        color: 'bg-violet-500/40',
+      },
+      {
+        label: 'Lines changed',
+        value: linesChanged >= 1000 ? `${(linesChanged / 1000).toFixed(1)}k` : String(linesChanged),
+        bar: linesChanged > 0 ? Math.min(1, linesChanged / Math.max(linesChanged, 500)) : 0,
+        color: 'bg-cyan-500/40',
+      },
+    ]
+  }, [tasks])
 
   const metrics = useMemo(() => [
     { label: 'Completed', value: String(completedCount), delta: '', icon: <CheckCircle2 size={15} />, accent: 'text-emerald-400', glow: 'shadow-[inset_0_0_40px_rgba(52,211,153,0.04)]' },
@@ -286,11 +319,7 @@ export function Dashboard({ onViewChange, onTaskClick }: DashboardProps) {
               </div>
             </div>
             <div className="space-y-2">
-              {[
-                { label: 'Tasks done',    value: '47',  bar: 0.85, color: 'bg-emerald-500/40' },
-                { label: 'Tests written', value: '312', bar: 0.65, color: 'bg-violet-500/40' },
-                { label: 'Lines changed', value: '4.2k',bar: 0.72, color: 'bg-cyan-500/40' },
-              ].map(s => (
+              {weeklyStats.map(s => (
                 <div key={s.label} className="space-y-1">
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] text-slate-600">{s.label}</span>
@@ -307,9 +336,14 @@ export function Dashboard({ onViewChange, onTaskClick }: DashboardProps) {
                 </div>
               ))}
             </div>
-            <div className="mt-3 pt-3 border-t border-white/[0.04] flex items-center gap-1.5 text-[10px] font-mono text-slate-600">
-              <Coins size={9} className="text-amber-700" />
-              <span>$12.40 total cost</span>
+            <div className="mt-3 pt-3 border-t border-white/[0.04] flex items-center justify-between gap-2 text-[10px] font-mono text-slate-600">
+              <div className="flex items-center gap-1.5">
+                <Coins size={9} className="text-amber-700" />
+                <span>{formatCostUsd(projectCost.costUsd)} project cost</span>
+              </div>
+              {projectCost.tokensUsed > 0 && (
+                <span className="text-slate-700">{projectCost.tokensUsed.toLocaleString()} tokens</span>
+              )}
             </div>
           </GlassPanel>
         </motion.div>

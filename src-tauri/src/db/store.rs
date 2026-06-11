@@ -182,6 +182,50 @@ impl DbStore {
         })
     }
 
+    pub fn update_project(
+        &self,
+        project_id: &str,
+        title: Option<&str>,
+        governance_mode: Option<&str>,
+        now: &str,
+    ) -> Result<ProjectRow, String> {
+        let conn = self.conn.lock().map_err(|e| e.to_string())?;
+        let existing: ProjectRow = conn
+            .query_row(
+                "SELECT id, title, goal_text, governance_mode, created_at, updated_at FROM projects WHERE id = ?1",
+                params![project_id],
+                |row| {
+                    Ok(ProjectRow {
+                        id: row.get(0)?,
+                        title: row.get(1)?,
+                        goal_text: row.get(2)?,
+                        governance_mode: row.get(3)?,
+                        created_at: row.get(4)?,
+                        updated_at: row.get(5)?,
+                    })
+                },
+            )
+            .map_err(|_| format!("Project not found: {project_id}"))?;
+
+        let new_title = title.unwrap_or(&existing.title);
+        let new_mode = governance_mode.unwrap_or(&existing.governance_mode);
+
+        conn.execute(
+            "UPDATE projects SET title = ?1, governance_mode = ?2, updated_at = ?3 WHERE id = ?4",
+            params![new_title, new_mode, now, project_id],
+        )
+        .map_err(|e| e.to_string())?;
+
+        Ok(ProjectRow {
+            id: existing.id,
+            title: new_title.to_string(),
+            goal_text: existing.goal_text,
+            governance_mode: new_mode.to_string(),
+            created_at: existing.created_at,
+            updated_at: now.to_string(),
+        })
+    }
+
     pub fn get_project(&self, project_id: &str) -> Result<Option<ProjectRow>, String> {
         let conn = self.conn.lock().map_err(|e| e.to_string())?;
         conn.query_row(

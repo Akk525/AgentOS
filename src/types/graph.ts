@@ -82,6 +82,12 @@ export interface CreateProjectInput {
   governanceMode?: GovernanceMode
 }
 
+export interface UpdateProjectInput {
+  projectId: string
+  title?: string
+  governanceMode?: GovernanceMode
+}
+
 export interface AppendEventInput {
   projectId?: string | null
   sessionId?: string | null

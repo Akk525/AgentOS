@@ -123,6 +123,29 @@ export function ReviewPanel({
         )}
       </AnimatePresence>
 
+      {/* Merge conflict */}
+      <AnimatePresence>
+        {task.mergeConflict && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="flex items-start gap-2 px-4 py-2 border-b border-crimson-500/15 flex-shrink-0"
+            style={{ background: 'rgba(239,68,68,0.04)' }}
+          >
+            <AlertTriangle size={11} className="text-crimson-400 flex-shrink-0 mt-0.5" />
+            <div className="min-w-0">
+              <span className="text-[10px] font-mono text-crimson-300/90 block">
+                Merge conflict — builder fix task spawned
+              </span>
+              {task.blockReason && (
+                <span className="text-[10px] text-slate-500 mt-0.5 block">{task.blockReason}</span>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Test run status */}
       <AnimatePresence>
         {testRunState === 'running' && (

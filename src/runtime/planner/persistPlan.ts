@@ -1,5 +1,6 @@
 import type { GovernanceMode, Project } from '../../types/graph'
 import type { TokenUsage } from '../inference/types'
+import { recordTokenUsage } from '../cost/recordTokenUsage'
 import { getLocalStore } from '../store'
 import { ensureTaskSessionShells } from '../sessionStore'
 import { taskGraphEngine } from '../taskGraphEngine'
@@ -26,6 +27,7 @@ export async function persistPlan(
 ): Promise<Project> {
   const trimmed = options.goalText.trim()
   const epicId = uid('epic')
+  const plannerSessionId = uid('sess')
   const titleToId = new Map<string, string>()
 
   const project = await taskGraphEngine.createProject({
@@ -42,7 +44,7 @@ export async function persistPlan(
     description: plan.epic.description,
     status: 'running',
     metadata: {
-      plannerSessionId: uid('sess'),
+      plannerSessionId,
       plannerName: PLANNER_NAME,
       workspaceName: WORKSPACE_NAME,
       reasoning: plan.reasoning,
@@ -112,6 +114,19 @@ export async function persistPlan(
         : {}),
     },
   })
+
+  if (options.usage) {
+    await recordTokenUsage({
+      projectId: project.id,
+      nodeId: epicId,
+      sessionId: plannerSessionId,
+      providerId: options.providerId,
+      modelId: options.modelId,
+      role: 'planner',
+      usage: options.usage,
+      message: `Planner used ${options.usage.totalTokens.toLocaleString()} tokens`,
+    })
+  }
 
   await ensureTaskSessionShells(project.id, taskIds)
 
