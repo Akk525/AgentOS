@@ -5,8 +5,9 @@ import { StatusPill } from '../shared/StatusPill'
 import { GlowButton } from '../shared/GlowButton'
 import { AgentAvatar } from '../shared/AgentAvatar'
 import { RuntimeBadge } from '../shared/RuntimeBadge'
-import { mockTasks } from '../../data/mockTasks'
 import { mockAgents } from '../../data/mockAgents'
+import { useGraphTasks } from '../../hooks/useGraphTasks'
+import { getTaskAgentDisplay } from '../../lib/taskAgent'
 import type { View } from '../../App'
 import type { Task } from '../../types'
 
@@ -55,8 +56,9 @@ const fadeUp = {
 }
 
 export function Dashboard({ onViewChange, onTaskClick }: DashboardProps) {
-  const runningTasks = mockTasks.filter(t => t.status === 'running')
-  const reviewTasks  = mockTasks.filter(t => t.status === 'review')
+  const { tasks } = useGraphTasks()
+  const runningTasks = tasks.filter(t => t.status === 'running')
+  const reviewTasks  = tasks.filter(t => t.status === 'review')
   const activeAgents = mockAgents.filter(a => a.status === 'running')
 
   return (
@@ -113,7 +115,7 @@ export function Dashboard({ onViewChange, onTaskClick }: DashboardProps) {
             ) : (
               <div className="space-y-2">
                 {runningTasks.map(task => {
-                  const agent = mockAgents.find(a => a.id === task.assignedAgentId)
+                  const agent = getTaskAgentDisplay(task)
                   return (
                     <motion.div
                       key={task.id}
@@ -121,7 +123,7 @@ export function Dashboard({ onViewChange, onTaskClick }: DashboardProps) {
                       onClick={() => onTaskClick(task)}
                       className="flex items-center gap-3 p-3.5 rounded-xl cursor-pointer bg-cyan-500/[0.03] border border-cyan-500/[0.08] hover:border-cyan-500/[0.15] transition-all"
                     >
-                      {agent && <AgentAvatar role={agent.role} status={agent.status} size="sm" />}
+                      <AgentAvatar role={agent.role} status={agent.status} size="sm" />
                       <div className="flex-1 min-w-0">
                         <div className="text-[13px] text-slate-200 truncate font-medium">{task.title}</div>
                         <div className="text-[10px] text-slate-600 font-mono mt-0.5">{task.repo} · {task.branch}</div>

@@ -3,7 +3,7 @@ import { GitBranch, TestTube, Clock, AlertCircle, Zap, UserCheck, Loader2 } from
 import { StatusPill } from '../shared/StatusPill'
 import { AgentAvatar } from '../shared/AgentAvatar'
 import { useRuntime } from '../../context/RuntimeContext'
-import { mockAgents } from '../../data/mockAgents'
+import { getTaskAgentDisplay } from '../../lib/taskAgent'
 import { formatRuntime, formatRelativeTime } from '../../lib/utils'
 import { cn } from '../../lib/utils'
 import type { Task, RuntimePhase } from '../../types'
@@ -60,7 +60,7 @@ const phaseBarColor: Partial<Record<RuntimePhase, string>> = {
 }
 
 export function TaskCard({ task, onClick }: TaskCardProps) {
-  const agent = mockAgents.find(a => a.id === task.assignedAgentId)
+  const agent = getTaskAgentDisplay(task)
   const isRunning = task.status === 'running'
   const priority = task.priority ?? 'medium'
   const extraGlow = statusGlow[task.status] ?? ''
@@ -157,10 +157,8 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
         {/* Agent + metrics row */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            {agent && (
-              <AgentAvatar role={agent.role} status={agent.status} size="sm" />
-            )}
-            <span className="text-[10px] text-slate-600 font-mono">{agent?.name ?? 'Unassigned'}</span>
+            <AgentAvatar role={agent.role} status={agent.status} size="sm" />
+            <span className="text-[10px] text-slate-600 font-mono">{agent.name}</span>
           </div>
 
           <div className="flex items-center gap-2">

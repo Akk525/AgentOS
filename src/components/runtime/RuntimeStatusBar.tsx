@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Activity, Cpu, Layers, AlertTriangle, CheckCircle2, ChevronRight, Wifi, WifiOff, RefreshCw } from 'lucide-react'
 import { useRuntime } from '../../context/RuntimeContext'
-import { mockTasks } from '../../data/mockTasks'
-import { mockAgents } from '../../data/mockAgents'
+import { useGraphTasks } from '../../hooks/useGraphTasks'
+import { getTaskAgentDisplay } from '../../lib/taskAgent'
 import type { SessionMode } from '../../types'
 import type { RuntimeConnectionStatus } from '../../runtime/runtimeTypes'
 
@@ -47,10 +47,11 @@ export function RuntimeStatusBar() {
   const [tokPerSec, setTokPerSec] = useState(metrics.tokensPerSec)
   const [tick, setTick] = useState(0)
 
-  const runningTasks = mockTasks.filter(t => t.status === 'running')
-  const reviewTasks  = mockTasks.filter(t => t.status === 'review')
-  const activeTask   = activeTaskId ? mockTasks.find(t => t.id === activeTaskId) : runningTasks[0]
-  const activeAgent  = activeTask ? mockAgents.find(a => a.id === activeTask.assignedAgentId) : null
+  const { tasks } = useGraphTasks()
+  const runningTasks = tasks.filter(t => t.status === 'running')
+  const reviewTasks  = tasks.filter(t => t.status === 'review')
+  const activeTask   = activeTaskId ? tasks.find(t => t.id === activeTaskId) : runningTasks[0]
+  const activeAgent  = activeTask ? getTaskAgentDisplay(activeTask) : null
 
   // Simulate live token throughput jitter
   useEffect(() => {

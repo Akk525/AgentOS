@@ -25,6 +25,7 @@ import { OrchestratorProvider } from '../../context/OrchestratorContext'
 import { TaskGraphProvider } from '../../context/TaskGraphContext'
 import { RoadmapView } from '../roadmap/RoadmapView'
 import { OnboardingOverlay } from '../onboarding/OnboardingOverlay'
+import { GoalEntryGate } from '../goal/GoalEntryGate'
 import { ShortcutsOverlay } from '../shared/ShortcutsOverlay'
 import { useFirstRun } from '../../hooks/useFirstRun'
 import { WebFallbackBanner } from '../shared/WebFallbackBanner'
@@ -206,6 +207,7 @@ export function AppShell({
         <AnimatePresence>
           {isFirstRun && <OnboardingOverlay onComplete={completeOnboarding} />}
         </AnimatePresence>
+        <GoalEntryGate onViewChange={onViewChange} />
       </div>
       </OrchestratorProvider>
       </TaskGraphProvider>

@@ -65,6 +65,10 @@ class OrchestratorRuntime {
     }
   }
 
+  async refreshFromStore(): Promise<void> {
+    await this.hydrateFromStore()
+  }
+
   private async hydrateFromStore(): Promise<void> {
     const store = getLocalStore()
     if (!store.available) return

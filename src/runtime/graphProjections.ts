@@ -40,6 +40,8 @@ export function graphNodesToTasks(nodes: GraphNode[], project?: Project | null):
         branch: n.branch ?? 'main',
         worktree: meta.worktree as string | undefined,
         assignedAgentId: (meta.assignedAgentId as string) ?? `agent-${n.assignedRole ?? 'general'}`,
+        assignedRole: n.assignedRole ?? (meta.role as string) ?? undefined,
+        assignedAgentName: (meta.assignedAgentName as string) ?? undefined,
         model: (meta.model as string) ?? 'claude-sonnet-4-6',
         provider: (meta.provider as string) ?? 'anthropic',
         status: STATUS_TO_TASK[n.status],

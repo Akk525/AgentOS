@@ -64,6 +64,8 @@ export interface Task {
   branch: string
   worktree?: string
   assignedAgentId: string
+  assignedRole?: string
+  assignedAgentName?: string
   model: string
   provider: string
   status: TaskStatus

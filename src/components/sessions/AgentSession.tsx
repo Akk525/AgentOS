@@ -16,9 +16,9 @@ import { InjectModal } from '../runtime/InjectModal'
 import { PermissionsPanel } from './PermissionsPanel'
 import { SessionArchivePanel } from './SessionArchivePanel'
 import { useRuntime } from '../../context/RuntimeContext'
-import { mockSession } from '../../data/mockTraces'
-import { mockTasks } from '../../data/mockTasks'
-import { mockAgents } from '../../data/mockAgents'
+import { useGraphTasks } from '../../hooks/useGraphTasks'
+import { useGraphSession } from '../../hooks/useGraphSession'
+import { getTaskAgentDisplay } from '../../lib/taskAgent'
 import type { Task } from '../../types'
 
 interface AgentSessionProps {
@@ -29,11 +29,12 @@ interface AgentSessionProps {
 type Tab = 'terminal' | 'tools' | 'review' | 'diff'
 
 export function AgentSession({ task: propTask, onBack }: AgentSessionProps) {
-  const task = propTask ?? mockTasks.find(t => t.status === 'running') ?? mockTasks[0]
-  const agent = mockAgents.find(a => a.id === task.assignedAgentId)
-  const [activeTab, setActiveTab] = useState<Tab>(task.status === 'review' ? 'review' : 'terminal')
+  const { tasks } = useGraphTasks()
+  const task = propTask ?? tasks.find(t => t.status === 'running') ?? tasks[0]
+  const agent = task ? getTaskAgentDisplay(task) : null
+  const { session, loading: sessionLoading, fromStore } = useGraphSession(task?.id)
+  const [activeTab, setActiveTab] = useState<Tab>(task?.status === 'review' ? 'review' : 'terminal')
   const [injectOpen, setInjectOpen] = useState(false)
-  const session = mockSession
 
   const {
     sessionMode, setSessionMode, setActiveTaskId, injectedEvents,
@@ -42,14 +43,49 @@ export function AgentSession({ task: propTask, onBack }: AgentSessionProps) {
     updatedCompletionNote, reviewRefreshedAt,
     testRunState,
   } = useRuntime()
-  const isRunning = task.status === 'running' && sessionMode === 'autonomous'
 
   useEffect(() => {
+    if (!task) return
+    setActiveTab(task.status === 'review' ? 'review' : 'terminal')
+  }, [task?.id, task?.status])
+
+  useEffect(() => {
+    if (!task) return
     setActiveTaskId(task.id)
     return () => setActiveTaskId(null)
-  }, [task.id, setActiveTaskId])
+  }, [task?.id, setActiveTaskId])
 
-  // All session commands delegate to the engine via context — no direct state mutation
+  if (!task) {
+    return (
+      <div className="relative flex flex-col h-full items-center justify-center gap-3">
+        <button
+          onClick={onBack}
+          className="absolute top-4 left-4 w-7 h-7 flex items-center justify-center rounded-lg text-slate-500 hover:text-slate-300 hover:bg-white/[0.04] transition-all"
+        >
+          <ArrowLeft size={14} />
+        </button>
+        <p className="text-sm text-slate-500 font-mono">No task selected</p>
+        <p className="text-[11px] text-slate-700 font-mono">Select a task from the board to view its session</p>
+      </div>
+    )
+  }
+
+  if (sessionLoading || !session) {
+    return (
+      <div className="relative flex flex-col h-full items-center justify-center gap-3">
+        <button
+          onClick={onBack}
+          className="absolute top-4 left-4 w-7 h-7 flex items-center justify-center rounded-lg text-slate-500 hover:text-slate-300 hover:bg-white/[0.04] transition-all"
+        >
+          <ArrowLeft size={14} />
+        </button>
+        <p className="text-sm text-slate-500 font-mono">Loading session…</p>
+      </div>
+    )
+  }
+
+  const isRunning = task.status === 'running' && sessionMode === 'autonomous'
+
   const handlePause = ()                        => setSessionMode('paused')
   const handleResume = ()                       => setSessionMode('autonomous')
   const handleTakeover = ()                     => { setSessionMode('human_controlled'); setActiveTab('terminal') }
@@ -91,6 +127,11 @@ export function AgentSession({ task: propTask, onBack }: AgentSessionProps) {
           <div className="flex items-center gap-2.5 mb-0.5">
             <h1 className="text-sm font-semibold text-slate-100 truncate leading-snug">{task.title}</h1>
             <StatusPill status={task.status} />
+            {!fromStore && (
+              <span className="text-[9px] font-mono text-slate-600 bg-white/[0.04] px-1.5 py-0.5 rounded">
+                demo trace
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-2 text-[11px] text-slate-600 font-mono">
             <span>{agent?.name}</span>

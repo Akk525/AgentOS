@@ -8,6 +8,7 @@ interface TaskGraphContextValue extends TaskGraphState {
   tasks: Task[]
   runtimePlan: RuntimePlan | null
   graphAvailable: boolean
+  needsGoalEntry: boolean
 }
 
 const TaskGraphContext = createContext<TaskGraphContextValue | null>(null)
@@ -31,8 +32,15 @@ export function TaskGraphProvider({ children }: { children: React.ReactNode }) {
     return graphToRuntimePlan(state.activeProject, state.nodes, state.edges)
   }, [state.activeProject, state.nodes, state.edges])
 
+  const needsGoalEntry =
+    state.loaded &&
+    graphAvailable &&
+    (!state.activeProject || state.nodes.length === 0)
+
   return (
-    <TaskGraphContext.Provider value={{ ...state, tasks, runtimePlan, graphAvailable }}>
+    <TaskGraphContext.Provider
+      value={{ ...state, tasks, runtimePlan, graphAvailable, needsGoalEntry }}
+    >
       {children}
     </TaskGraphContext.Provider>
   )

@@ -1,5 +1,4 @@
 import type { CreateProjectInput, GraphEdge, GraphNode, Project } from '../types/graph'
-import { seedDemoGraphIfEmpty } from '../data/demoGraphSeed'
 import { computeBlockedNodes, computeReadyNodes } from './graphExecutor'
 import { getLocalStore } from './store'
 import type { UpsertEdgeInput, UpsertNodeInput } from './store/localStoreTypes'
@@ -87,10 +86,8 @@ class TaskGraphEngine {
       return
     }
 
-    const projectId = await seedDemoGraphIfEmpty()
     const projects = await store.listProjects()
     const activeId =
-      projectId ??
       localStorage.getItem(ACTIVE_PROJECT_KEY) ??
       projects[0]?.id ??
       null
